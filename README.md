@@ -17,7 +17,7 @@
 
     example: docker exec lightblocks-client-1 /app/client --username nir --msgs '[{"command":"addItem","key":"key1","value":"value1"},{"command":"addItem","key":"key2","value":"value2"},{"command":"addItem","key":"key3","value":"value3"},{"command":"addItem","key":"key111","value":"yaythere"},{"command":"getAllItems"}]'
     
-    example multiple users: [example_multiple_users.txt](https://github.com/user-attachments/files/16509687/example_multiple_users.txt)
+    example multiple users: https://github.com/user-attachments/files/16509687/example_multiple_users.txt
 
 <b> Assumptions: </b> <br />
 	Don't need to remove command from map after making it. <br />
