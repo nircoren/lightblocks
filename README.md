@@ -4,9 +4,13 @@
     put .env i sent you on root dir <br />
     $ docker-compose up --build <br />
   Send messages: <br />
-    $ docker exec <containter_name> /app/client --username <username> --msgs <msgs>
+  !!! might have issue with parsing the json on bash/ wt in windows, better to use another terminal. <br />
+    $ docker exec <containter_name> /app/bin/client --username <username> --msgs <msgs> <br />
+        example: <br/>
+	$ docker exec lightblocks-client-1 /app/bin/client --username nir --msgs '[{"command":"addItem","key":"key1","value":"value1"},{"command":"addItem","key":"key2","value":"value2"},{"command":"addItem","key":"key3","value":"value3"},{"command":"addItem","key":"key111","value":"yaythere"},{"command":"getAllItems"}]'
+
     Done!
-    
+
     You need to pass user name and message in this format:
     username string
     type Message struct {
@@ -15,9 +19,10 @@
       Value   string `json:"value,omitempty"`
     }
 
-    example: docker exec lightblocks-client-1 /app/client --username nir --msgs '[{"command":"addItem","key":"key1","value":"value1"},{"command":"addItem","key":"key2","value":"value2"},{"command":"addItem","key":"key3","value":"value3"},{"command":"addItem","key":"key111","value":"yaythere"},{"command":"getAllItems"}]'
     
-    example multiple users: https://github.com/user-attachments/files/16509687/example_multiple_users.txt
+    example multiple users: https://github.com/user-attachments/files/16510323/example_multiple_users.txt
+)
+
 
 <b> Assumptions: </b> <br />
 	Don't need to remove command from map after making it. <br />
