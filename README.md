@@ -33,5 +33,6 @@
  	I don't have enough time to deal with all edge cases (client order can change if he makes 2 requests from different terminal)
 
 Sequence Diagram: <br />
-![image](https://github.com/user-attachments/assets/176abd14-84d0-4837-9473-57c996d80186)
+![image](https://github.com/user-attachments/assets/319da34c-5ec8-402e-8cad-cffc9dfe4f38)
+
 
