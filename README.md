@@ -3,14 +3,20 @@
     $ git clone https://github.com/nircoren/lightblocks.git <br />
     put .env i sent you on root dir <br />
     $ docker-compose up --build <br />
+     <br />
   Send messages: <br />
   !!! might have issue with parsing the json on bash/ wt in windows, better to use another terminal. <br />
     $ docker exec <containter_name> /app/bin/client --username <username> --msgs <msgs> <br />
         example: <br/>
 	$ docker exec lightblocks-client-1 /app/bin/client --username nir --msgs '[{"command":"addItem","key":"key1","value":"value1"},{"command":"addItem","key":"key2","value":"value2"},{"command":"addItem","key":"key3","value":"value3"},{"command":"addItem","key":"key111","value":"yaythere"},{"command":"getAllItems"}]'
-
+  <br />
     Done!
-
+ <br />
+ Testing:  <br />
+ $ docker exec -it lightblocks-server-1 /bin/bash <br />
+ go test ./...
+ <br />
+ 	use to manually test 
     You need to pass user name and message in this format:
     username string
     type Message struct {
