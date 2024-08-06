@@ -3,7 +3,7 @@
    2. put .env i sent you on root dir <br />
    3. $ docker-compose up --build <br />
   4. $ docker exec <containter_name> /app/bin/client --username <username> --msgs <msgs> <br />
-	to send messages.
+	docker exec sends the messages to client
 <br/><br/>
         <b>example input:</b> <br/>
 	$ docker exec lightblocks-client-1 /app/bin/client --username nir --msgs '[{"command":"addItem","key":"key1","value":"value1"},{"command":"addItem","key":"key2","value":"value2"},{"command":"addItem","key":"key3","value":"value3"},{"command": "addItem","key":"key111","value":"yaythere"},{"command":"getAllItems"}]'  <br /> <br />
