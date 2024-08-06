@@ -23,6 +23,7 @@ var AllowedCommandsMap = map[string]bool{
 	"getAllItems": true,
 }
 
+// Inits connection to SQS
 func NewSQSClient() (*sqs.SQS, error) {
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(os.Getenv("AWS_REGION")),

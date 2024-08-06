@@ -3,10 +3,13 @@ package server
 import (
 	"container/list"
 	"fmt"
+	"log"
 	"sync"
 )
 
 // OrderedMap structure
+// The logic is having a map store key that is pointing to a doubly linked list element.
+// This way we can have O(1) delete, insert and update operations.
 type OrderedMap struct {
 	data  map[string]*list.Element
 	order *list.List
@@ -27,8 +30,9 @@ func NewOrderedMap() *OrderedMap {
 }
 
 func (om *OrderedMap) AddItem(key string, value string) {
-	om.mutex.RLock()
-	defer om.mutex.RUnlock()
+	om.mutex.Lock() // Lock for writing
+	defer om.mutex.Unlock()
+
 	element, exists := om.data[key]
 	if exists {
 		element.Value.(*Pair).Value = value
@@ -41,8 +45,9 @@ func (om *OrderedMap) AddItem(key string, value string) {
 }
 
 func (om *OrderedMap) DeleteItem(key string) {
-	om.mutex.RLock()
-	defer om.mutex.RUnlock()
+	om.mutex.Lock()
+	defer om.mutex.Unlock()
+
 	element, exists := om.data[key]
 	if exists {
 		om.order.Remove(element)
@@ -53,8 +58,6 @@ func (om *OrderedMap) DeleteItem(key string) {
 }
 
 func (om *OrderedMap) GetItem(key string) (string, bool) {
-	om.mutex.RLock()
-	defer om.mutex.RUnlock()
 	element, exists := om.data[key]
 	if exists {
 		return element.Value.(*Pair).Value, true
@@ -63,8 +66,6 @@ func (om *OrderedMap) GetItem(key string) (string, bool) {
 }
 
 func (om *OrderedMap) GetAllItems() []Pair {
-	om.mutex.RLock()
-	defer om.mutex.RUnlock()
 
 	items := make([]Pair, 0, om.order.Len())
 	for e := om.order.Front(); e != nil; e = e.Next() {
@@ -72,4 +73,52 @@ func (om *OrderedMap) GetAllItems() []Pair {
 		items = append(items, *pair)
 	}
 	return items
+}
+
+type LocalMessage struct {
+	Command string
+	Key     string
+	Value   string
+}
+
+// We use mutex to prevent delete and add from changing the map while we are iterating over it.
+func (om *OrderedMap) HandleCommand(message *LocalMessage, logger *log.Logger, wg *sync.WaitGroup) {
+	switch message.Command {
+	case "addItem":
+		om.AddItem(message.Key, message.Value)
+		fmt.Printf("Added: %s -> %s\n", message.Key, message.Value)
+	case "deleteItem":
+		om.DeleteItem(message.Key)
+		fmt.Printf("del deleted")
+		fmt.Printf("Deleted: %s\n", message.Key)
+	case "getItem":
+		om.mutex.RLock()
+		wg.Add(1)
+		go func() {
+			defer om.mutex.RUnlock()
+			defer wg.Done()
+			value, exists := om.GetItem(message.Key)
+			if exists {
+				logger.Printf("Get Item: %s -> %s\n", message.Key, value)
+				fmt.Printf("Get Item: %s -> %s\n", message.Key, value)
+			} else {
+				fmt.Printf("Item: %s not found\n", message.Key)
+			}
+		}()
+	case "getAllItems":
+		om.mutex.RLock()
+		wg.Add(1)
+		go func() {
+			defer om.mutex.RUnlock()
+			defer wg.Done()
+			items := om.GetAllItems()
+			logger.Printf("All items:")
+			for _, item := range items {
+				fmt.Printf("%s -> %s\n", item.Key, item.Value)
+				logger.Printf("	Got Item: %s -> %s\n", item.Key, item.Value)
+			}
+		}()
+	default:
+		fmt.Printf("Unknown command: %s\n", message.Command)
+	}
 }

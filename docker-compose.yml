@@ -10,6 +10,8 @@ services:
     ports:
       - "8080:8080"
   client:
+    # To keep the container running
+    command: tail -F anything
     # image: client_image
     # container_name: client_container
     build:

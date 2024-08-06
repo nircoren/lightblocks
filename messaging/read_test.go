@@ -5,11 +5,10 @@ import (
 	"testing"
 )
 
-func TestReceiveMessages(t *testing.T) {
+func TestReceive(t *testing.T) {
 	OrderMap := server.NewOrderedMap()
 	logger, _ := server.SetupLogger()
-	svc, err := NewSQSClient()
-	err = receiveAndProcessMessages(svc, OrderMap, logger)
+	err := ReceiveMessages(OrderMap, logger)
 	if err != nil {
 		t.Fatalf("Error receiving messages: %s", err)
 	}

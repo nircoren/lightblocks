@@ -11,6 +11,8 @@ import (
 	"github.com/google/uuid"
 )
 
+const SqsMaxBatchSize int = 10
+
 func sendBatch(svc *sqs.SQS, queueURL string, commands []Message, userName string) error {
 	fmt.Println(commands)
 	entries := make([]*sqs.SendMessageBatchRequestEntry, len(commands))
@@ -42,7 +44,6 @@ func sendBatch(svc *sqs.SQS, queueURL string, commands []Message, userName strin
 		Entries:  entries,
 	})
 
-	// Send the result to the channel
 	if err != nil {
 		return err
 	}
@@ -60,7 +61,7 @@ func SendMessages(messages []Message, userName string) error {
 		return err
 	}
 
-	// Client side filter questions by unknown command
+	// Client side filter questions with unknown command
 	filteredMessages := []Message{}
 	for _, msg := range messages {
 		if _, ok := AllowedCommandsMap[msg.Command]; ok {
@@ -70,9 +71,9 @@ func SendMessages(messages []Message, userName string) error {
 		}
 	}
 
-	// Split the messages into batches of 10
-	for i := 0; i < len(filteredMessages); i += 10 {
-		end := i + 10
+	// Split the messages into batches of 10 as its the max for sqs
+	for i := 0; i < len(filteredMessages); i += SqsMaxBatchSize {
+		end := i + SqsMaxBatchSize
 		if end > len(filteredMessages) {
 			end = len(filteredMessages)
 		}

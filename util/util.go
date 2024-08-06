@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	messaging "main/message"
+	"main/messaging"
 	"os"
 )
 
