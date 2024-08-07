@@ -14,10 +14,6 @@ type MessageReceiver interface {
 	ReceiveMessages() ([]queue.Message, error)
 }
 
-type SQSReceiver struct {
-	Client *sqs.SQS
-}
-
 // The main function reads messages from the SQS queue and sends them to a channel.
 // The channel is read by worker goroutines that process the messages.
 // The main function waits for all workers to finish processing the messages before exiting.

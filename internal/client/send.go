@@ -8,6 +8,10 @@ import (
 
 const SqsMaxBatchSize int = 10
 
+type MessageSender interface {
+	SendMessages(messages []queue.Message, userName string) error
+}
+
 func SendMessages(messages []queue.Message, userName string) error {
 	SqsClient := &queue.SQSService{}
 	_, err := SqsClient.NewSQSClient()
