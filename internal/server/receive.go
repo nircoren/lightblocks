@@ -4,12 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
+	"main/pkg/queue"
 	"sync"
 
-	"main/pkg/queue"
-
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
@@ -29,12 +26,12 @@ func ReceiveMessages(orderedMap *OrderedMap, logger *log.Logger, deleteMessages 
 
 	// Channel to send messages to workers
 	messageChan := make(chan sqs.Message, numWorkers)
-	queueURL := os.Getenv("QUEUE_URL")
 
 	// WaitGroup to wait for all workers to finish
 	var workersWg sync.WaitGroup
 
-	svc, err := queue.NewSQSClient()
+	SqsClient := &queue.SQSService{}
+	_, err := SqsClient.NewSQSClient()
 	if err != nil {
 		fmt.Println("Error creating session: ", err)
 		return err
@@ -45,32 +42,25 @@ func ReceiveMessages(orderedMap *OrderedMap, logger *log.Logger, deleteMessages 
 		go func(workerID int) {
 			defer workersWg.Done()
 			if deleteMessages {
-				processMessages(workerID, svc, queueURL, messageChan)
+				processMessages(SqsClient, workerID, messageChan)
 			}
 		}(i)
 	}
 
 	for {
-		msgResult, err := svc.ReceiveMessage(&sqs.ReceiveMessageInput{
-			AttributeNames: []*string{
-				aws.String(sqs.MessageSystemAttributeNameSentTimestamp),
-			},
-			MessageAttributeNames: []*string{
-				aws.String(sqs.QueueAttributeNameAll),
-			},
-			QueueUrl:            aws.String(os.Getenv("QUEUE_URL")),
-			MaxNumberOfMessages: aws.Int64(10),
-			WaitTimeSeconds:     aws.Int64(10),
-		})
+		msgResult, err := SqsClient.ReceiveMessages()
 
 		if err != nil {
-			log.Printf("failed to fetch sqs message: %v", err)
+			log.Printf("Error receiving messages: %v", err)
 			continue
 		}
 
-		if len(msgResult.Messages) == 0 {
-			log.Println("No messages received")
+		if msgResult == nil {
 			continue
+		}
+
+		for _, message := range msgResult.Messages {
+			messageChan <- *message
 		}
 
 		for _, message := range msgResult.Messages {
@@ -98,29 +88,13 @@ func ReceiveMessages(orderedMap *OrderedMap, logger *log.Logger, deleteMessages 
 }
 
 // The processMessages function reads messages from the messageChan channel and processes them.
-func processMessages(workerID int, svc *sqs.SQS, queueURL string, messageChan <-chan sqs.Message) {
+func processMessages(SqsClient *queue.SQSService, workerID int, messageChan <-chan sqs.Message) {
 	for message := range messageChan {
-		err := deleteMessage(svc, &message)
+		err := SqsClient.DeleteMessage(&message)
 		if err != nil {
 			log.Printf("failed to delete message: %v", err)
 			continue
 		}
 
 	}
-}
-
-func deleteMessage(svc *sqs.SQS, msg *sqs.Message) error {
-	queueURL := os.Getenv("QUEUE_URL")
-
-	_, err := svc.DeleteMessage(&sqs.DeleteMessageInput{
-		QueueUrl:      &queueURL,
-		ReceiptHandle: msg.ReceiptHandle,
-	})
-
-	if err != nil {
-		log.Printf("Failed to delete message: %v", err)
-		return err
-	}
-	return nil
-
 }
