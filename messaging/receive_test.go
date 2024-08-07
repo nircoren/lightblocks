@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"main/server"
+	"main/util"
 	"testing"
 	"time"
 )
@@ -31,7 +32,7 @@ func receiveMessagesWithTimeout(orderMap *server.OrderedMap, logger *log.Logger,
 
 func TestReceive(t *testing.T) {
 	OrderMap := server.NewOrderedMap()
-	logger, _ := server.SetupLogger()
+	logger, _ := util.SetupLogger("logs/test_sqs_messages.log")
 
 	// Run ReceiveMessages for 5 seconds
 	err := receiveMessagesWithTimeout(OrderMap, logger, 5*time.Second)

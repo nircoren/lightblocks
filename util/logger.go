@@ -1,4 +1,4 @@
-package server
+package util
 
 import (
 	"fmt"
@@ -7,9 +7,8 @@ import (
 	"path/filepath"
 )
 
-func SetupLogger() (*log.Logger, error) {
+func SetupLogger(logPath string) (*log.Logger, error) {
 	// Server will write to this file
-	logPath := "logs/sqs_messages.log"
 	projectRoot, err := os.Getwd()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get working directory: %v", err)
