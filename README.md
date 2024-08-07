@@ -1,6 +1,6 @@
 <b>Quick Start</b>: <br />
    1. $ git clone https://github.com/nircoren/lightblocks.git <br />
-   2. put .env i sent you on root dir <br />
+   2. put .env i sent you on root dir. make sure its called .env <br />
    3. $ docker-compose up --build <br />
   4. $ docker exec <containter_name> /app/bin/client --username <username> --msgs <msgs> <br />
 	docker exec sends the messages to client
