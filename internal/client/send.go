@@ -1,10 +1,10 @@
-package messaging
+package client
 
 import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"main/models"
+	"main/pkg/queue"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -14,7 +14,7 @@ import (
 
 const SqsMaxBatchSize int = 10
 
-func sendBatch(svc *sqs.SQS, queueURL string, commands []models.Message, userName string) error {
+func sendBatch(svc *sqs.SQS, queueURL string, commands []queue.Message, userName string) error {
 	fmt.Println(commands)
 	entries := make([]*sqs.SendMessageBatchRequestEntry, len(commands))
 	for i, cmd := range commands {
@@ -53,19 +53,19 @@ func sendBatch(svc *sqs.SQS, queueURL string, commands []models.Message, userNam
 
 }
 
-func SendMessages(messages []models.Message, userName string) error {
+func SendMessages(messages []queue.Message, userName string) error {
 	queueURL := os.Getenv("QUEUE_URL")
 
-	svc, err := NewSQSClient()
+	svc, err := queue.NewSQSClient()
 	if err != nil {
 		fmt.Println("Error creating session: ", err)
 		return err
 	}
 
 	// Client side filter questions with unknown command
-	filteredMessages := []models.Message{}
+	filteredMessages := []queue.Message{}
 	for _, msg := range messages {
-		if _, ok := AllowedCommandsMap[msg.Command]; ok {
+		if _, ok := queue.AllowedCommandsMap[msg.Command]; ok {
 			filteredMessages = append(filteredMessages, msg)
 		} else {
 			log.Printf("Unknown command: %s\n", msg.Command)

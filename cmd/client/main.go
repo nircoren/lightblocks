@@ -5,8 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"main/messaging"
-	"main/models"
+	"main/internal/client"
+	"main/pkg/queue"
 	"sync"
 )
 
@@ -15,7 +15,7 @@ func main() {
 	msgs := flag.String("msgs", "", "")
 	flag.Parse()
 	if *username != "" && *msgs != "" {
-		var messages []models.Message
+		var messages []queue.Message
 		err := json.Unmarshal([]byte(*msgs), &messages)
 		if err != nil {
 			fmt.Println("Error unmarshaling JSON:", err)
@@ -25,7 +25,7 @@ func main() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err := messaging.SendMessages(messages, *username)
+			err := client.SendMessages(messages, *username)
 			if err != nil {
 				log.Println("Error sending messages:", err)
 			}

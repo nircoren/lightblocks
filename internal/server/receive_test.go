@@ -1,16 +1,15 @@
-package messaging
+package server
 
 import (
 	"context"
 	"log"
-	"main/server"
 	"main/util"
 	"testing"
 	"time"
 )
 
 // This is a wrapper function for testing
-func receiveMessagesWithTimeout(orderMap *server.OrderedMap, logger *log.Logger, timeout time.Duration) error {
+func receiveMessagesWithTimeout(orderMap *OrderedMap, logger *log.Logger, timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -31,7 +30,7 @@ func receiveMessagesWithTimeout(orderMap *server.OrderedMap, logger *log.Logger,
 }
 
 func TestReceive(t *testing.T) {
-	OrderMap := server.NewOrderedMap()
+	OrderMap := NewOrderedMap()
 	logger, _ := util.SetupLogger("logs/test_sqs_messages.log")
 
 	// Run ReceiveMessages for 5 seconds

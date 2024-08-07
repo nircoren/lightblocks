@@ -4,7 +4,7 @@ import (
 	"container/list"
 	"fmt"
 	"log"
-	"main/models"
+	"main/pkg/queue"
 	"sync"
 )
 
@@ -77,7 +77,7 @@ func (om *OrderedMap) GetAllItems() []Pair {
 }
 
 // We use a mutex to ensure safe concurrent access to the map
-func (om *OrderedMap) HandleCommand(message *models.Message, logger *log.Logger, wg *sync.WaitGroup) {
+func (om *OrderedMap) HandleCommand(message *queue.Message, logger *log.Logger, wg *sync.WaitGroup) {
 	switch message.Command {
 	case "addItem":
 		om.AddItem(message.Key, message.Value)

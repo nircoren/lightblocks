@@ -1,4 +1,4 @@
-package messaging
+package queue
 
 import (
 	"log"
@@ -12,12 +12,17 @@ import (
 
 type SQSClient interface {
 	SendMessage(input *sqs.SendMessageInput) (*sqs.SendMessageOutput, error)
-	ReceiveMessage(input *sqs.ReceiveMessageInput) (*sqs.ReceiveMessageOutput, error)
-	DeleteMessage(input *sqs.DeleteMessageInput) (*sqs.DeleteMessageOutput, error)
+	ReceiveMessages(input *sqs.ReceiveMessageInput) (*sqs.ReceiveMessageOutput, error)
 }
 
 type SQSClientProvider interface {
 	NewSQSClient() (SQSClient, error)
+}
+
+type Message struct {
+	Command string `json:"command"`
+	Key     string `json:"key,omitempty"`
+	Value   string `json:"value,omitempty"`
 }
 
 var AllowedCommandsMap = map[string]bool{

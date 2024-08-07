@@ -2,8 +2,7 @@ package main
 
 import (
 	"fmt"
-	"main/messaging"
-	"main/server"
+	"main/internal/server"
 	"main/util"
 )
 
@@ -16,6 +15,6 @@ func main() {
 		return
 	}
 
-	messaging.ReceiveMessages(orderedMap, logger, true)
+	server.ReceiveMessages(orderedMap, logger, true)
 
 }

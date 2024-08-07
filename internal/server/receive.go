@@ -1,4 +1,4 @@
-package messaging
+package server
 
 import (
 	"encoding/json"
@@ -7,15 +7,14 @@ import (
 	"os"
 	"sync"
 
-	"main/models"
-	"main/server"
+	"main/pkg/queue"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
 type MessageReceiver interface {
-	ReceiveMessages() ([]models.Message, error)
+	ReceiveMessages() ([]queue.Message, error)
 }
 
 type SQSReceiver struct {
@@ -25,7 +24,7 @@ type SQSReceiver struct {
 // The main function reads messages from the SQS queue and sends them to a channel.
 // The channel is read by worker goroutines that process the messages.
 // The main function waits for all workers to finish processing the messages before exiting.
-func ReceiveMessages(orderedMap *server.OrderedMap, logger *log.Logger, deleteMessages bool) error {
+func ReceiveMessages(orderedMap *OrderedMap, logger *log.Logger, deleteMessages bool) error {
 	numWorkers := 3
 
 	// Channel to send messages to workers
@@ -35,7 +34,7 @@ func ReceiveMessages(orderedMap *server.OrderedMap, logger *log.Logger, deleteMe
 	// WaitGroup to wait for all workers to finish
 	var workersWg sync.WaitGroup
 
-	svc, err := NewSQSClient()
+	svc, err := queue.NewSQSClient()
 	if err != nil {
 		fmt.Println("Error creating session: ", err)
 		return err
@@ -75,7 +74,7 @@ func ReceiveMessages(orderedMap *server.OrderedMap, logger *log.Logger, deleteMe
 		}
 
 		for _, message := range msgResult.Messages {
-			messageModel := &models.Message{}
+			messageModel := &queue.Message{}
 			err := json.Unmarshal([]byte(*message.Body), messageModel)
 
 			if err != nil {
@@ -84,7 +83,7 @@ func ReceiveMessages(orderedMap *server.OrderedMap, logger *log.Logger, deleteMe
 				return err
 			}
 
-			if _, allowed := AllowedCommandsMap[messageModel.Command]; !allowed {
+			if _, allowed := queue.AllowedCommandsMap[messageModel.Command]; !allowed {
 				log.Printf("invalid command: %s", messageModel.Command)
 				return err
 			}

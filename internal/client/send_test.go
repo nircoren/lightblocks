@@ -1,14 +1,14 @@
-package messaging
+package client
 
 import (
-	"main/models"
 	"sync"
 	"testing"
+	"main/pkg/queue"
 )
 
 func TestSendMessages(t *testing.T) {
 
-	Messages := []models.Message{
+	Messages := []queue.Message{
 		{
 			Command: "addItem",
 			Key:     "key1",
