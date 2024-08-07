@@ -26,10 +26,8 @@
 
 
 <b> My assumptions during project: </b> <br />
-	Don't need to remove command from map after making it. <br />
-	You didn't request client to be a server. <br />
-	Order of actions should stay the same for each client, but doesnt matter if order is not the same for 2 clients relative to the order they sent message. <br />
+	Don't need to remove command from map execute making it. <br />
+	Client shouldn't be a server. <br />
+	Order of actions should stay the same for each client, but doesnt matter if order is not the same between 2 different clients <br />
 	Shouldn't cancel sending and receiveing based on one bad message. <br />
- 	I don't have enough time to deal with all edge cases (client order can change if he makes 2 requests from different terminal)
-
 
