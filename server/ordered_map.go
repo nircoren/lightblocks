@@ -4,8 +4,8 @@ import (
 	"container/list"
 	"fmt"
 	"log"
-	"sync"
 	"main/models"
+	"sync"
 )
 
 // OrderedMap structure
@@ -76,7 +76,7 @@ func (om *OrderedMap) GetAllItems() []Pair {
 	return items
 }
 
-// We use mutex to prevent delete and add from changing the map while we are iterating over it.
+// We use a mutex to ensure safe concurrent access to the map
 func (om *OrderedMap) HandleCommand(message *models.Message, logger *log.Logger, wg *sync.WaitGroup) {
 	switch message.Command {
 	case "addItem":
