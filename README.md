@@ -1,6 +1,7 @@
+!! made change to folder structure in 07/08/ 13:00 (after sending solution to hr) !!
 <b>Quick Start</b>: <br />
    1. $ git clone https://github.com/nircoren/lightblocks.git <br />
-   2. put .env i sent you on root dir <br />
+   2. put .env i sent you on root dir. make sure its called .env <br />
    3. $ docker-compose up --build <br />
   4. $ docker exec <containter_name> /app/bin/client --username <username> --msgs <msgs> <br />
 	docker exec sends the messages to client
@@ -26,14 +27,8 @@
 
 
 <b> My assumptions during project: </b> <br />
-	Don't need to remove command from map after making it. <br />
-	You didn't request client to be a server. <br />
-	Order of actions should stay the same for each client, but doesnt matter if order is not the same for 2 clients relative to the order they sent message. <br />
+	Don't need to remove command from map execute making it. <br />
+	Client shouldn't be a server. <br />
+	Order of actions should stay the same for each client, but doesnt matter if order is not the same between 2 different clients <br />
 	Shouldn't cancel sending and receiveing based on one bad message. <br />
- 	I don't have enough time to deal with all edge cases (client order can change if he makes 2 requests from different terminal)
-
-Sequence Diagram: <br />
-![image](https://github.com/user-attachments/assets/473d3de8-2e08-4646-b32e-ee283d4ba306)
-
-
 
