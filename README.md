@@ -7,7 +7,7 @@
 <br/><br/>
         <b>example input:</b> <br/>
 	$ docker exec lightblocks-client-1 /app/bin/client --username nir --msgs '[{"command":"addItem","key":"key1","value":"value1"},{"command":"addItem","key":"key2","value":"value2"},{"command":"addItem","key":"key3","value":"value3"},{"command": "addItem","key":"key111","value":"yaythere"},{"command":"getAllItems"}]'  <br /> <br />
-  !!! might have issue with parsing the json on bash/ wt in windows, better to use another terminal. <br /> <br />
+  !!! might have issue with parsing the json on bash/wt in windows, better to use another terminal. <br /> <br />
 	
 	 Testing:  <br />
 	 $ docker exec -it lightblocks-server-1 /bin/bash <br />
@@ -32,5 +32,8 @@
 	Shouldn't cancel sending and receiveing based on one bad message. <br />
  	I don't have enough time to deal with all edge cases (client order can change if he makes 2 requests from different terminal)
 
-sequence diagram: <br />
-![image](https://github.com/user-attachments/assets/6576bc41-03c6-4500-ba8e-e94ea800a2f6)
+Sequence Diagram: <br />
+![image](https://github.com/user-attachments/assets/473d3de8-2e08-4646-b32e-ee283d4ba306)
+
+
+
