@@ -1,3 +1,4 @@
+!! made change to folder structure in 07/08/ 13:00 (after sending solution to hr) !!
 <b>Quick Start</b>: <br />
    1. $ git clone https://github.com/nircoren/lightblocks.git <br />
    2. put .env i sent you on root dir. make sure its called .env <br />
