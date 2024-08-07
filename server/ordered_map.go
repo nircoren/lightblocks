@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"main/models"
 )
 
 // OrderedMap structure
@@ -75,14 +76,8 @@ func (om *OrderedMap) GetAllItems() []Pair {
 	return items
 }
 
-type LocalMessage struct {
-	Command string
-	Key     string
-	Value   string
-}
-
 // We use mutex to prevent delete and add from changing the map while we are iterating over it.
-func (om *OrderedMap) HandleCommand(message *LocalMessage, logger *log.Logger, wg *sync.WaitGroup) {
+func (om *OrderedMap) HandleCommand(message *models.Message, logger *log.Logger, wg *sync.WaitGroup) {
 	switch message.Command {
 	case "addItem":
 		om.AddItem(message.Key, message.Value)

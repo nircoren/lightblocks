@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"main/messaging"
+	"main/models"
 	"sync"
 )
 
@@ -14,7 +15,7 @@ func main() {
 	msgs := flag.String("msgs", "", "")
 	flag.Parse()
 	if *username != "" && *msgs != "" {
-		var messages []messaging.Message
+		var messages []models.Message
 		err := json.Unmarshal([]byte(*msgs), &messages)
 		if err != nil {
 			fmt.Println("Error unmarshaling JSON:", err)

@@ -4,32 +4,32 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"main/messaging"
 	"os"
 )
 
-func GetFileData(filePath string, model interface{}) ([]messaging.Message, error) {
+func GetFileData[T any](filePath string) (T, error) {
 	file, err := os.Open(filePath)
+	var model T
+
 	if err != nil {
 		fmt.Println("Error opening file:", err)
-		return nil, err
+		return model, err
 	}
 	defer file.Close()
 
 	data, err := io.ReadAll(file)
 	if err != nil {
 		fmt.Println("Error reading file:", err)
-		return nil, err
+		return model, err
 	}
 
 	// Check that format of input.json is valid
-	var messages []messaging.Message
-	err = json.Unmarshal(data, &messages)
+	err = json.Unmarshal(data, &model)
 	if err != nil {
 		fmt.Println("Error unmarshaling JSON:", err)
-		return nil, err
+		return model, err
 	}
 
-	return messages, nil
+	return model, nil
 
 }

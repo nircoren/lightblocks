@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestOrderedMap(t *testing.T) {
+func TestOrdered_map(t *testing.T) {
 
 	OrderMap := NewOrderedMap()
 	for i := 0; i < 10; i++ {

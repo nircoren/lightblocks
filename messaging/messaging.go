@@ -10,10 +10,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
-type Message struct {
-	Command string `json:"command"`
-	Key     string `json:"key,omitempty"`
-	Value   string `json:"value,omitempty"`
+type SQSClient interface {
+	SendMessage(input *sqs.SendMessageInput) (*sqs.SendMessageOutput, error)
+	ReceiveMessage(input *sqs.ReceiveMessageInput) (*sqs.ReceiveMessageOutput, error)
+	DeleteMessage(input *sqs.DeleteMessageInput) (*sqs.DeleteMessageOutput, error)
+}
+
+type SQSClientProvider interface {
+	NewSQSClient() (SQSClient, error)
 }
 
 var AllowedCommandsMap = map[string]bool{

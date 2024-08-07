@@ -15,6 +15,6 @@ func main() {
 		return
 	}
 
-	messaging.ReceiveMessages(orderedMap, logger)
+	messaging.ReceiveMessages(orderedMap, logger, true)
 
 }

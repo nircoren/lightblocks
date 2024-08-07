@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"main/models"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -13,7 +14,7 @@ import (
 
 const SqsMaxBatchSize int = 10
 
-func sendBatch(svc *sqs.SQS, queueURL string, commands []Message, userName string) error {
+func sendBatch(svc *sqs.SQS, queueURL string, commands []models.Message, userName string) error {
 	fmt.Println(commands)
 	entries := make([]*sqs.SendMessageBatchRequestEntry, len(commands))
 	for i, cmd := range commands {
@@ -33,7 +34,7 @@ func sendBatch(svc *sqs.SQS, queueURL string, commands []Message, userName strin
 					StringValue: aws.String(cmd.Command),
 				},
 			},
-			MessageGroupId:         aws.String(userName),
+			MessageGroupId:         aws.String(userName + "_" + msgID),
 			MessageDeduplicationId: aws.String(msgID),
 		}
 	}
@@ -52,7 +53,7 @@ func sendBatch(svc *sqs.SQS, queueURL string, commands []Message, userName strin
 
 }
 
-func SendMessages(messages []Message, userName string) error {
+func SendMessages(messages []models.Message, userName string) error {
 	queueURL := os.Getenv("QUEUE_URL")
 
 	svc, err := NewSQSClient()
@@ -62,7 +63,7 @@ func SendMessages(messages []Message, userName string) error {
 	}
 
 	// Client side filter questions with unknown command
-	filteredMessages := []Message{}
+	filteredMessages := []models.Message{}
 	for _, msg := range messages {
 		if _, ok := AllowedCommandsMap[msg.Command]; ok {
 			filteredMessages = append(filteredMessages, msg)

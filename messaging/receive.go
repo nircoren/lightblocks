@@ -7,16 +7,25 @@ import (
 	"os"
 	"sync"
 
+	"main/models"
 	"main/server"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
+type MessageReceiver interface {
+	ReceiveMessages() ([]models.Message, error)
+}
+
+type SQSReceiver struct {
+	Client *sqs.SQS
+}
+
 // The main function reads messages from the SQS queue and sends them to a channel.
 // The channel is read by worker goroutines that process the messages.
 // The main function waits for all workers to finish processing the messages before exiting.
-func ReceiveMessages(orderedMap *server.OrderedMap, logger *log.Logger) error {
+func ReceiveMessages(orderedMap *server.OrderedMap, logger *log.Logger, deleteMessages bool) error {
 	numWorkers := 3
 
 	// Channel to send messages to workers
@@ -24,7 +33,7 @@ func ReceiveMessages(orderedMap *server.OrderedMap, logger *log.Logger) error {
 	queueURL := os.Getenv("QUEUE_URL")
 
 	// WaitGroup to wait for all workers to finish
-	var wg sync.WaitGroup
+	var workersWg sync.WaitGroup
 
 	svc, err := NewSQSClient()
 	if err != nil {
@@ -33,10 +42,12 @@ func ReceiveMessages(orderedMap *server.OrderedMap, logger *log.Logger) error {
 	}
 
 	for i := 0; i < numWorkers; i++ {
-		wg.Add(1)
+		workersWg.Add(1)
 		go func(workerID int) {
-			defer wg.Done()
-			processMessages(workerID, svc, queueURL, messageChan)
+			defer workersWg.Done()
+			if deleteMessages {
+				processMessages(workerID, svc, queueURL, messageChan)
+			}
 		}(i)
 	}
 
@@ -64,7 +75,7 @@ func ReceiveMessages(orderedMap *server.OrderedMap, logger *log.Logger) error {
 		}
 
 		for _, message := range msgResult.Messages {
-			messageModel := &Message{}
+			messageModel := &models.Message{}
 			err := json.Unmarshal([]byte(*message.Body), messageModel)
 
 			if err != nil {
@@ -77,12 +88,12 @@ func ReceiveMessages(orderedMap *server.OrderedMap, logger *log.Logger) error {
 				log.Printf("invalid command: %s", messageModel.Command)
 				return err
 			}
-			orderedMap.HandleCommand((*server.LocalMessage)(messageModel), logger, &wg)
+			orderedMap.HandleCommand(messageModel, logger, &workersWg)
 			messageChan <- *message
 		}
 
 	}
-	wg.Wait()
+	workersWg.Wait()
 
 	return nil
 }
@@ -101,10 +112,6 @@ func processMessages(workerID int, svc *sqs.SQS, queueURL string, messageChan <-
 
 func deleteMessage(svc *sqs.SQS, msg *sqs.Message) error {
 	queueURL := os.Getenv("QUEUE_URL")
-	if queueURL == "" {
-		log.Println("QUEUE_URL environment variable is not set.")
-		return fmt.Errorf("QUEUE_URL environment variable is not set")
-	}
 
 	_, err := svc.DeleteMessage(&sqs.DeleteMessageInput{
 		QueueUrl:      &queueURL,
