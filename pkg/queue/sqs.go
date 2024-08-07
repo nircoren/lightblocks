@@ -13,8 +13,9 @@ import (
 )
 
 type SQSClient interface {
-	SendMessage(input *sqs.SendMessageInput) (*sqs.SendMessageOutput, error)
-	ReceiveMessages(input *sqs.ReceiveMessageInput) (*sqs.ReceiveMessageOutput, error)
+	SendBatch(commands []Message, userName string) error
+	ReceiveMessages() (*sqs.ReceiveMessageOutput, error)
+	DeleteMessage(msg *sqs.Message) error
 }
 
 type SQSService struct {
