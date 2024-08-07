@@ -1,7 +1,3 @@
-!! made change to folder structure and relations between pkg and send, receive on 07/08/ 13:00 ( a few hours after sending solution to hr) !!
-</br>
-</br>
-
 <b>Quick Start</b>: <br />
    1. $ git clone https://github.com/nircoren/lightblocks.git <br />
    2. put .env i sent you on root dir. make sure its called .env <br />
