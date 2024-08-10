@@ -8,9 +8,9 @@ import (
 	"sync"
 )
 
-// OrderedMap structure
 // The logic is having a map store key that is pointing to a doubly linked list element.
 // This way we can have O(1) delete, insert and update operations.
+
 type OrderedMap struct {
 	data  map[string]*list.Element
 	order *list.List
@@ -31,9 +31,6 @@ func NewOrderedMap() *OrderedMap {
 }
 
 func (om *OrderedMap) AddItem(key string, value string) {
-	om.mutex.Lock() // Lock for writing
-	defer om.mutex.Unlock()
-
 	element, exists := om.data[key]
 	if exists {
 		element.Value.(*Pair).Value = value
@@ -46,9 +43,6 @@ func (om *OrderedMap) AddItem(key string, value string) {
 }
 
 func (om *OrderedMap) DeleteItem(key string) {
-	om.mutex.Lock()
-	defer om.mutex.Unlock()
-
 	element, exists := om.data[key]
 	if exists {
 		om.order.Remove(element)
@@ -77,14 +71,17 @@ func (om *OrderedMap) GetAllItems() []Pair {
 }
 
 // We use a mutex to ensure safe concurrent access to the map
-func (om *OrderedMap) HandleCommand(message *queue.Message, logger *log.Logger, wg *sync.WaitGroup) {
+func (om *OrderedMap) HandleCommand(message queue.Message, logger *log.Logger, wg *sync.WaitGroup) {
 	switch message.Command {
 	case "addItem":
+		om.mutex.Lock()
 		om.AddItem(message.Key, message.Value)
+		om.mutex.Unlock()
 		fmt.Printf("Added: %s -> %s\n", message.Key, message.Value)
 	case "deleteItem":
+		om.mutex.Lock()
 		om.DeleteItem(message.Key)
-		fmt.Printf("del deleted")
+		om.mutex.Unlock()
 		fmt.Printf("Deleted: %s\n", message.Key)
 	case "getItem":
 		om.mutex.RLock()

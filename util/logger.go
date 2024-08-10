@@ -8,7 +8,6 @@ import (
 )
 
 func SetupLogger(logPath string) (*log.Logger, error) {
-	// Server will write to this file
 	projectRoot, err := os.Getwd()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get working directory: %v", err)

@@ -2,6 +2,7 @@ package queue
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 
@@ -13,7 +14,7 @@ import (
 )
 
 type SQSClient interface {
-	SendBatch(commands []Message, userName string) error
+	SendMessages(commands []Message, userName string) error
 	ReceiveMessages() (*sqs.ReceiveMessageOutput, error)
 	DeleteMessage(msg *sqs.Message) error
 }
@@ -23,10 +24,19 @@ type SQSService struct {
 	queueURL string
 }
 
-type Message struct {
+// Not used currently
+type Command struct {
 	Command string `json:"command"`
 	Key     string `json:"key,omitempty"`
 	Value   string `json:"value,omitempty"`
+}
+
+type Message struct {
+	Command       string `json:"command"`
+	Key           string `json:"key,omitempty"`
+	Value         string `json:"value,omitempty"`
+	GroupID       string
+	ReceiptHandle *string
 }
 
 var AllowedCommandsMap = map[string]bool{
@@ -53,7 +63,7 @@ func (s *SQSService) NewSQSClient() (*sqs.SQS, error) {
 
 }
 
-func (s *SQSService) SendBatch(commands []Message, userName string) error {
+func (s *SQSService) SendMessages(commands []Message, userName string) error {
 	entries := make([]*sqs.SendMessageBatchRequestEntry, len(commands))
 	for i, cmd := range commands {
 		// Convert command struct to JSON string for the message body
@@ -62,7 +72,6 @@ func (s *SQSService) SendBatch(commands []Message, userName string) error {
 			log.Printf("Error marshalling command: %v\n", err)
 		}
 		msgID := uuid.New().String()
-
 		entries[i] = &sqs.SendMessageBatchRequestEntry{
 			Id:          aws.String(msgID),
 			MessageBody: aws.String(string(cmdBody)),
@@ -72,7 +81,7 @@ func (s *SQSService) SendBatch(commands []Message, userName string) error {
 					StringValue: aws.String(cmd.Command),
 				},
 			},
-			MessageGroupId:         aws.String(userName + "_" + msgID),
+			MessageGroupId:         aws.String(userName),
 			MessageDeduplicationId: aws.String(msgID),
 		}
 	}
@@ -91,10 +100,10 @@ func (s *SQSService) SendBatch(commands []Message, userName string) error {
 
 }
 
-func (s *SQSService) ReceiveMessages() (*sqs.ReceiveMessageOutput, error) {
+func (s *SQSService) ReceiveMessages() ([]Message, error) {
 	msgResult, err := s.client.ReceiveMessage(&sqs.ReceiveMessageInput{
 		AttributeNames: []*string{
-			aws.String(sqs.MessageSystemAttributeNameSentTimestamp),
+			aws.String(sqs.QueueAttributeNameAll),
 		},
 		MessageAttributeNames: []*string{
 			aws.String(sqs.QueueAttributeNameAll),
@@ -113,14 +122,52 @@ func (s *SQSService) ReceiveMessages() (*sqs.ReceiveMessageOutput, error) {
 		log.Println("No messages received")
 		return nil, nil
 	}
-	return msgResult, nil
+
+	// Convert the messages to our Message struct
+	messages := make([]Message, len(msgResult.Messages))
+	for i, msg := range msgResult.Messages {
+		messageModel, err := makeMessageModel(msg)
+		if err != nil {
+			s.DeleteMessage(msg.ReceiptHandle)
+			continue
+		}
+		messages[i] = *messageModel
+	}
+	return messages, nil
 
 }
 
-func (s *SQSService) DeleteMessage(msg *sqs.Message) error {
+func makeMessageModel(message *sqs.Message) (*Message, error) {
+	messageModel := &Message{}
+
+	// Unmarshal the message body into the Message struct
+	err := json.Unmarshal([]byte(*message.Body), messageModel)
+	if err != nil {
+		log.Printf("Error unmarshalling message body: %v", err)
+		return nil, err
+	}
+
+	// Validate the command
+	if _, allowed := AllowedCommandsMap[messageModel.Command]; !allowed {
+		log.Printf("Invalid command: %s", messageModel.Command)
+		return nil, fmt.Errorf("invalid command: %s", messageModel.Command)
+	}
+
+	if messageModel.Command == "addItem" && (messageModel.Key == "" || messageModel.Value == "") {
+		log.Printf("Missing key or value for addItem command: %s", *message.Body)
+		return nil, fmt.Errorf("missing key or value for addItem command")
+	}
+
+	messageModel.GroupID = *message.Attributes["MessageGroupId"]
+	messageModel.ReceiptHandle = message.ReceiptHandle
+
+	return messageModel, nil
+}
+
+func (s *SQSService) DeleteMessage(receiptHandle *string) error {
 	_, err := s.client.DeleteMessage(&sqs.DeleteMessageInput{
 		QueueUrl:      &s.queueURL,
-		ReceiptHandle: msg.ReceiptHandle,
+		ReceiptHandle: receiptHandle,
 	})
 
 	if err != nil {

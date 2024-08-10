@@ -37,8 +37,8 @@ func SendMessages(messages []queue.Message, userName string) error {
 		}
 		batch := filteredMessages[i:end]
 
-		// We don't send goroutine to maintain the order of the messages of user.
-		err := SqsClient.SendBatch(batch, userName)
+		// We don't use goroutine to maintain the order of the messages of user.
+		err := SqsClient.SendMessages(batch, userName)
 		if err != nil {
 			log.Printf("Error sending batch: %v\n", err)
 			return err
