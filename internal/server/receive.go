@@ -12,6 +12,8 @@ type MessageReceiver interface {
 	ReceiveMessages() ([]queue.Message, error)
 }
 
+// We have a map of channels that are used to send messages to workers
+// Each worker is responsible for processing messages of a specific group (user)
 func ReceiveMessages(orderedMap *OrderedMap, logger *log.Logger, deleteMessages bool) error {
 	sqsClient := &queue.SQSService{}
 	_, err := sqsClient.NewSQSClient()
