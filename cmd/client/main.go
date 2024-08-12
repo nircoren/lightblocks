@@ -24,7 +24,7 @@ func main() {
 			"aws_secret_access_key": os.Getenv("AWS_SECRET_ACCESS_KEY"),
 			"queueURL":              os.Getenv("QUEUE_URL"),
 		}
-		// Create a new SQS client
+		// Dependency Injection of sqs
 		SQSService, err := sqs.NewMessagingService(config)
 		if err != nil {
 			fmt.Println("Error creating SQS service: ", err)

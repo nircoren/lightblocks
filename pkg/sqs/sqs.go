@@ -19,6 +19,8 @@ type SQSService struct {
 	queueURL string
 }
 
+// TODO: Add the necessary structs and methods to implement the send and receive messages
+// Should include the Command struct in it, with sqs additions.
 type sendMessage struct {
 	Action string `json:"Action"`
 	Key    string `json:"key,omitempty"`

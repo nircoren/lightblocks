@@ -25,6 +25,7 @@ func main() {
 		"queueURL":              os.Getenv("QUEUE_URL"),
 	}
 
+	// Dependency Injection of sqs
 	SQSService, err := sqs.NewMessagingService(config)
 	if err != nil {
 		fmt.Println("Error creating SQS service: ", err)
