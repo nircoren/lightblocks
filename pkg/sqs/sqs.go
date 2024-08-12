@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
+
+	"main/queue/models"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -13,61 +14,48 @@ import (
 	"github.com/google/uuid"
 )
 
-type SQSClient interface {
-	SendMessages(commands []Message, userName string) error
-	ReceiveMessages() (*sqs.ReceiveMessageOutput, error)
-	DeleteMessage(msg *sqs.Message) error
-}
-
 type SQSService struct {
 	client   *sqs.SQS
 	queueURL string
 }
 
-// Not used currently
-type Command struct {
-	Command string `json:"command"`
-	Key     string `json:"key,omitempty"`
-	Value   string `json:"value,omitempty"`
+type sendMessage struct {
+	Action string `json:"Action"`
+	Key    string `json:"key,omitempty"`
+	Value  string `json:"value,omitempty"`
 }
 
-type Message struct {
-	Command       string `json:"command"`
+type RecievedMessage struct {
+	Action        string `json:"Action"`
 	Key           string `json:"key,omitempty"`
 	Value         string `json:"value,omitempty"`
 	GroupID       string
 	ReceiptHandle *string
 }
 
-var AllowedCommandsMap = map[string]bool{
-	"addItem":     true,
-	"deleteItem":  true,
-	"getItem":     true,
-	"getAllItems": true,
-}
-
-// Inits connection to SQS
-func (s *SQSService) NewSQSClient() (*sqs.SQS, error) {
+// Inits connection to SQSDA
+func (s *SQSService) NewMessagingService(config map[string]string) (*SQSService, error) {
 	sess, err := session.NewSession(&aws.Config{
-		Region:      aws.String(os.Getenv("AWS_REGION")),
-		Credentials: credentials.NewStaticCredentials(os.Getenv("AWS_ACCESS_KEY_ID"), os.Getenv("AWS_SECRET_ACCESS_KEY"), ""),
+		Region:      aws.String(config["region"]),
+		Credentials: credentials.NewStaticCredentials(config["aws_access_key_id"], config["aws_secret_access_key"], ""),
 	})
 
 	if err != nil {
 		log.Fatalf("failed to create session, %v", err)
 		return nil, err
 	}
-	s.queueURL = os.Getenv("QUEUE_URL")
-	s.client = sqs.New(sess)
-	return s.client, nil
 
+	return &SQSService{
+		queueURL: config["queueURL"],
+		client:   sqs.New(sess),
+	}, nil
 }
 
-func (s *SQSService) SendMessages(commands []Message, userName string) error {
-	entries := make([]*sqs.SendMessageBatchRequestEntry, len(commands))
-	for i, cmd := range commands {
+func (s *SQSService) SendMessages(messages []models.Command, userName string) error {
+	entries := make([]*sqs.SendMessageBatchRequestEntry, len(messages))
+	for i, action := range messages {
 		// Convert command struct to JSON string for the message body
-		cmdBody, err := json.Marshal(cmd)
+		actionBody, err := json.Marshal(action.Action)
 		if err != nil {
 			log.Printf("Error marshalling command: %v\n", err)
 		}
@@ -78,7 +66,7 @@ func (s *SQSService) SendMessages(commands []Message, userName string) error {
 			MessageAttributes: map[string]*sqs.MessageAttributeValue{
 				"CommandType": {
 					DataType:    aws.String("String"),
-					StringValue: aws.String(cmd.Command),
+					StringValue: aws.String(cmd.Action),
 				},
 			},
 			MessageGroupId:         aws.String(userName),
@@ -97,10 +85,9 @@ func (s *SQSService) SendMessages(commands []Message, userName string) error {
 	}
 
 	return nil
-
 }
 
-func (s *SQSService) ReceiveMessages() ([]Message, error) {
+func (s *SQSService) ReceiveMessages() ([]RecievedMessage, error) {
 	msgResult, err := s.client.ReceiveMessage(&sqs.ReceiveMessageInput{
 		AttributeNames: []*string{
 			aws.String(sqs.QueueAttributeNameAll),
@@ -124,7 +111,7 @@ func (s *SQSService) ReceiveMessages() ([]Message, error) {
 	}
 
 	// Convert the messages to our Message struct
-	messages := make([]Message, len(msgResult.Messages))
+	messages := make([]RecievedMessage, len(msgResult.Messages))
 	for i, msg := range msgResult.Messages {
 		messageModel, err := makeMessageModel(msg)
 		if err != nil {
@@ -148,12 +135,12 @@ func makeMessageModel(message *sqs.Message) (*Message, error) {
 	}
 
 	// Validate the command
-	if _, allowed := AllowedCommandsMap[messageModel.Command]; !allowed {
-		log.Printf("Invalid command: %s", messageModel.Command)
-		return nil, fmt.Errorf("invalid command: %s", messageModel.Command)
+	if _, allowed := AllowedActionsMap[messageModel.Action]; !allowed {
+		log.Printf("Invalid command: %s", messageModel.Action)
+		return nil, fmt.Errorf("invalid command: %s", messageModel.Action)
 	}
 
-	if messageModel.Command == "addItem" && (messageModel.Key == "" || messageModel.Value == "") {
+	if messageModel.Action == "addItem" && (messageModel.Key == "" || messageModel.Value == "") {
 		log.Printf("Missing key or value for addItem command: %s", *message.Body)
 		return nil, fmt.Errorf("missing key or value for addItem command")
 	}
