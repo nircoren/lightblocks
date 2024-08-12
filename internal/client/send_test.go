@@ -3,34 +3,35 @@ package client
 import (
 	"sync"
 	"testing"
-	"main/pkg/queue"
+
+	"github.com/nircoren/lightblocks/queue/models"
 )
 
 func TestSendMessages(t *testing.T) {
 
-	Messages := []queue.Message{
+	Messages := []models.Command{
 		{
-			Command: "addItem",
-			Key:     "key1",
-			Value:   "test",
+			Action: "addItem",
+			Key:    "key1",
+			Value:  "test",
 		},
 		{
-			Command: "addItem",
-			Key:     "key2",
-			Value:   "test",
+			Action: "addItem",
+			Key:    "key2",
+			Value:  "test",
 		},
 		{
-			Command: "addItem",
-			Key:     "key3",
-			Value:   "test",
+			Action: "addItem",
+			Key:    "key3",
+			Value:  "test",
 		},
 		{
-			Command: "addItem",
-			Key:     "key4",
-			Value:   "test",
+			Action: "addItem",
+			Key:    "key4",
+			Value:  "test",
 		},
 		{
-			Command: "getAllItems",
+			Action: "getAllItems",
 		},
 	}
 

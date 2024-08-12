@@ -3,9 +3,12 @@ package server
 import (
 	"context"
 	"log"
-	"main/util"
+	"os"
 	"testing"
 	"time"
+
+	"github.com/nircoren/lightblocks/pkg/sqs"
+	"github.com/nircoren/lightblocks/util"
 )
 
 // This is a wrapper function for testing
@@ -15,9 +18,28 @@ func receiveMessagesWithTimeout(orderMap *OrderedMap, logger *log.Logger, timeou
 
 	errChan := make(chan error, 1)
 
+	config := map[string]string{
+		"region":                os.Getenv("AWS_REGION"),
+		"aws_access_key_id":     os.Getenv("AWS_ACCESS_KEY_ID"),
+		"aws_secret_access_key": os.Getenv("AWS_SECRET_ACCESS_KEY"),
+		"queueURL":              os.Getenv("QUEUE_URL"),
+	}
+
+	SQSService, err := sqs.NewMessagingService(config)
+	if err != nil {
+		t.Fatalf("Error creating SQS service: %s", err)
+		return err
+	}
+
+	queueProvider := NewMessagingService(SQSService)
+	if err != nil {
+		t.Fatalf("Error creating session: %s", err)
+		return err
+	}
+
 	go func() {
 		// Don't want to delete messages in the test as i can't control the messages that will return
-		errChan <- ReceiveMessages(orderMap, logger, false)
+		errChan <- ReceiveMessages(queueProvider, orderMap, logger, false)
 	}()
 
 	select {

@@ -1,11 +1,11 @@
-package queue
+package sqs
 
 import (
 	"encoding/json"
 	"fmt"
 	"log"
 
-	"main/queue/models"
+	"github.com/nircoren/lightblocks/queue/models"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -34,7 +34,7 @@ type RecievedMessage struct {
 }
 
 // Inits connection to SQSDA
-func (s *SQSService) NewMessagingService(config map[string]string) (*SQSService, error) {
+func NewMessagingService(config map[string]string) (*SQSService, error) {
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(config["region"]),
 		Credentials: credentials.NewStaticCredentials(config["aws_access_key_id"], config["aws_secret_access_key"], ""),
@@ -51,22 +51,22 @@ func (s *SQSService) NewMessagingService(config map[string]string) (*SQSService,
 	}, nil
 }
 
-func (s *SQSService) SendMessages(messages []models.Command, userName string) error {
-	entries := make([]*sqs.SendMessageBatchRequestEntry, len(messages))
-	for i, action := range messages {
+func (s *SQSService) SendMessages(Commands []models.Command, userName string) error {
+	entries := make([]*sqs.SendMessageBatchRequestEntry, len(Commands))
+	for i, Command := range Commands {
 		// Convert command struct to JSON string for the message body
-		actionBody, err := json.Marshal(action.Action)
+		actionBody, err := json.Marshal(Command)
 		if err != nil {
 			log.Printf("Error marshalling command: %v\n", err)
 		}
 		msgID := uuid.New().String()
 		entries[i] = &sqs.SendMessageBatchRequestEntry{
 			Id:          aws.String(msgID),
-			MessageBody: aws.String(string(cmdBody)),
+			MessageBody: aws.String(string(actionBody)),
 			MessageAttributes: map[string]*sqs.MessageAttributeValue{
 				"CommandType": {
 					DataType:    aws.String("String"),
-					StringValue: aws.String(cmd.Action),
+					StringValue: aws.String(Command.Action),
 				},
 			},
 			MessageGroupId:         aws.String(userName),
@@ -87,7 +87,7 @@ func (s *SQSService) SendMessages(messages []models.Command, userName string) er
 	return nil
 }
 
-func (s *SQSService) ReceiveMessages() ([]RecievedMessage, error) {
+func (s *SQSService) ReceiveMessages() ([]models.Command, error) {
 	msgResult, err := s.client.ReceiveMessage(&sqs.ReceiveMessageInput{
 		AttributeNames: []*string{
 			aws.String(sqs.QueueAttributeNameAll),
@@ -111,7 +111,7 @@ func (s *SQSService) ReceiveMessages() ([]RecievedMessage, error) {
 	}
 
 	// Convert the messages to our Message struct
-	messages := make([]RecievedMessage, len(msgResult.Messages))
+	messages := make([]models.Command, len(msgResult.Messages))
 	for i, msg := range msgResult.Messages {
 		messageModel, err := makeMessageModel(msg)
 		if err != nil {
@@ -124,8 +124,8 @@ func (s *SQSService) ReceiveMessages() ([]RecievedMessage, error) {
 
 }
 
-func makeMessageModel(message *sqs.Message) (*Message, error) {
-	messageModel := &Message{}
+func makeMessageModel(message *sqs.Message) (*models.Command, error) {
+	messageModel := &models.Command{}
 
 	// Unmarshal the message body into the Message struct
 	err := json.Unmarshal([]byte(*message.Body), messageModel)
@@ -135,7 +135,7 @@ func makeMessageModel(message *sqs.Message) (*Message, error) {
 	}
 
 	// Validate the command
-	if _, allowed := AllowedActionsMap[messageModel.Action]; !allowed {
+	if _, allowed := models.AllowedActionsMap[messageModel.Action]; !allowed {
 		log.Printf("Invalid command: %s", messageModel.Action)
 		return nil, fmt.Errorf("invalid command: %s", messageModel.Action)
 	}

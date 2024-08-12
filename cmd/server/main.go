@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
-	"main/internal/server"
-	"main/util"
+	"os"
+
+	"github.com/nircoren/lightblocks/internal/server"
+	"github.com/nircoren/lightblocks/pkg/sqs"
+	"github.com/nircoren/lightblocks/util"
 )
 
 func main() {
@@ -15,6 +18,25 @@ func main() {
 		return
 	}
 
-	server.ReceiveMessages(orderedMap, logger, true)
+	config := map[string]string{
+		"region":                os.Getenv("AWS_REGION"),
+		"aws_access_key_id":     os.Getenv("AWS_ACCESS_KEY_ID"),
+		"aws_secret_access_key": os.Getenv("AWS_SECRET_ACCESS_KEY"),
+		"queueURL":              os.Getenv("QUEUE_URL"),
+	}
+
+	SQSService, err := sqs.NewMessagingService(config)
+	if err != nil {
+		fmt.Println("Error creating SQS service: ", err)
+		return
+	}
+
+	queueProvider := server.NewMessagingService(SQSService)
+	if err != nil {
+		fmt.Println("Error creating session: ", err)
+		return
+	}
+
+	server.ReceiveMessages(queueProvider, orderedMap, logger, true)
 
 }

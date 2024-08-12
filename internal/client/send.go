@@ -1,31 +1,33 @@
 package client
 
 import (
-	"fmt"
 	"log"
-	"main/pkg/queue"
+
+	"github.com/nircoren/lightblocks/queue/models"
 )
 
 const SqsMaxBatchSize int = 10
 
-type MessageSender interface {
-	SendMessages(messages []queue.Message, userName string) error
+type sendActions interface {
+	SendMessages(messages []models.Command, userName string) error
 }
 
-func SendMessages(messages []queue.Message, userName string) error {
-	SqsClient := &queue.SQSService{}
-	_, err := SqsClient.NewSQSClient()
-	if err != nil {
-		fmt.Println("Error creating session: ", err)
-		return err
-	}
+type MessagingService struct {
+	actions sendActions
+}
+
+func NewMessagingService(a sendActions) *MessagingService {
+	return &MessagingService{actions: a}
+}
+
+func SendMessages(queueProvider *MessagingService, messages []models.Command, userName string) error {
 	// Client side filter questions with unknown command
-	filteredMessages := []queue.Message{}
+	filteredMessages := []models.Command{}
 	for _, msg := range messages {
-		if _, ok := queue.AllowedCommandsMap[msg.Command]; ok {
+		if _, ok := models.AllowedActionsMap[msg.Action]; ok {
 			filteredMessages = append(filteredMessages, msg)
 		} else {
-			log.Printf("Unknown command: %s\n", msg.Command)
+			log.Printf("Unknown command: %s\n", msg.Action)
 		}
 	}
 
@@ -38,7 +40,7 @@ func SendMessages(messages []queue.Message, userName string) error {
 		batch := filteredMessages[i:end]
 
 		// We don't use goroutine to maintain the order of the messages of user.
-		err := SqsClient.SendMessages(batch, userName)
+		err := queueProvider.actions.SendMessages(batch, userName)
 		if err != nil {
 			log.Printf("Error sending batch: %v\n", err)
 			return err

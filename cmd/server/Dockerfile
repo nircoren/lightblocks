@@ -17,3 +17,5 @@ RUN GOOS=linux GOARCH=amd64 go build -o /app/bin/server
 RUN chmod +x /app/bin/server
 
 ENTRYPOINT [ "/app/bin/server" ]
+
+CMD ["air", "-c", ".air.toml"]

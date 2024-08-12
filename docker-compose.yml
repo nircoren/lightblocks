@@ -2,6 +2,7 @@ services:
   server:
     # image: server_image
     # container_name: server_container
+    command: air
     build:
       context: .
       dockerfile: cmd/server/Dockerfile

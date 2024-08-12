@@ -4,8 +4,9 @@ import (
 	"container/list"
 	"fmt"
 	"log"
-	"main/pkg/queue"
 	"sync"
+
+	"github.com/nircoren/lightblocks/queue/models"
 )
 
 // The logic is having a map store key that is pointing to a doubly linked list element.
@@ -20,6 +21,7 @@ type OrderedMap struct {
 type Pair struct {
 	Key   string
 	Value string
+	mu    *sync.RWMutex
 }
 
 func NewOrderedMap() *OrderedMap {
@@ -36,7 +38,7 @@ func (om *OrderedMap) AddItem(key string, value string) {
 		element.Value.(*Pair).Value = value
 	} else {
 		// Insert new element
-		pair := &Pair{key, value}
+		pair := &Pair{key, value, &sync.RWMutex{}}
 		element := om.order.PushBack(pair)
 		om.data[key] = element
 	}
@@ -71,17 +73,13 @@ func (om *OrderedMap) GetAllItems() []Pair {
 }
 
 // We use a mutex to ensure safe concurrent access to the map
-func (om *OrderedMap) HandleCommand(message queue.Message, logger *log.Logger, wg *sync.WaitGroup) {
-	switch message.Command {
+func (om *OrderedMap) HandleCommand(message models.Command, logger *log.Logger, wg *sync.WaitGroup) {
+	switch message.Action {
 	case "addItem":
-		om.mutex.Lock()
 		om.AddItem(message.Key, message.Value)
-		om.mutex.Unlock()
 		fmt.Printf("Added: %s -> %s\n", message.Key, message.Value)
 	case "deleteItem":
-		om.mutex.Lock()
 		om.DeleteItem(message.Key)
-		om.mutex.Unlock()
 		fmt.Printf("Deleted: %s\n", message.Key)
 	case "getItem":
 		om.mutex.RLock()
@@ -111,6 +109,6 @@ func (om *OrderedMap) HandleCommand(message queue.Message, logger *log.Logger, w
 			}
 		}()
 	default:
-		fmt.Printf("Unknown command: %s\n", message.Command)
+		fmt.Printf("Unknown command: %s\n", message.Action)
 	}
 }
