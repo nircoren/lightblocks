@@ -32,10 +32,6 @@ func main() {
 		}
 
 		queueProvider := client.NewMessagingService(SQSService)
-		if err != nil {
-			fmt.Println("Error creating session: ", err)
-			return
-		}
 
 		var messages []models.Command
 		err = json.Unmarshal([]byte(*rawMessages), &messages)

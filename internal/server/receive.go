@@ -72,7 +72,6 @@ func fetchAndProcessMessages(fetchChan chan struct{}, orderedMap *OrderedMap, qu
 
 	for _, message := range messages {
 		sendMessageToWorker(message, groupChanMap, orderedMap, queueProvider, logger, deleteMessages, workersWg, channelCloser)
-		fmt.Println("Sending message to channel: ", message)
 	}
 }
 

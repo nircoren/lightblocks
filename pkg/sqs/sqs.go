@@ -21,12 +21,14 @@ type SQSService struct {
 
 // TODO: Add the necessary structs and methods to implement the send and receive messages
 // Should include the Command struct in it, with sqs additions.
+// Unused
 type sendMessage struct {
 	Action string `json:"Action"`
 	Key    string `json:"key,omitempty"`
 	Value  string `json:"value,omitempty"`
 }
 
+// Unused
 type RecievedMessage struct {
 	Action        string `json:"Action"`
 	Key           string `json:"key,omitempty"`
@@ -53,7 +55,7 @@ func NewMessagingService(config map[string]string) (*SQSService, error) {
 	}, nil
 }
 
-func (s *SQSService) SendMessages(Commands []models.Command, userName string) error {
+func (s *SQSService) sendBatch(Commands []models.Command, userName string) error {
 	entries := make([]*sqs.SendMessageBatchRequestEntry, len(Commands))
 	for i, Command := range Commands {
 		// Convert command struct to JSON string for the message body
@@ -86,6 +88,26 @@ func (s *SQSService) SendMessages(Commands []models.Command, userName string) er
 		return err
 	}
 
+	return nil
+}
+
+func (s *SQSService) SendMessages(messages []models.Command, userName string) error {
+	const SqsMaxBatchSize int = 10
+
+	for i := 0; i < len(messages); i += SqsMaxBatchSize {
+		end := i + SqsMaxBatchSize
+		if end > len(messages) {
+			end = len(messages)
+		}
+		batch := messages[i:end]
+
+		// We don't use goroutine to maintain the order of the messages of user.
+		err := s.sendBatch(batch, userName)
+		if err != nil {
+			log.Printf("Error sending batch: %v\n", err)
+			return err
+		}
+	}
 	return nil
 }
 

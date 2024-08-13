@@ -33,10 +33,6 @@ func main() {
 	}
 
 	queueProvider := server.NewMessagingService(SQSService)
-	if err != nil {
-		fmt.Println("Error creating session: ", err)
-		return
-	}
 
 	server.ReceiveMessages(queueProvider, orderedMap, logger, true)
 
