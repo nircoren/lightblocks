@@ -9,49 +9,74 @@ import (
 	"github.com/nircoren/lightblocks/queue/models"
 )
 
+// Lock keys when writing, rlock when reading
+type KeyedMutex struct {
+	mutexes sync.Map
+}
+
+func (m *KeyedMutex) Lock(key string) func() {
+	value, _ := m.mutexes.LoadOrStore(key, &sync.RWMutex{})
+	mtx := value.(*sync.RWMutex)
+	mtx.Lock()
+
+	return func() { mtx.Unlock() }
+}
+
+func (m *KeyedMutex) RLock(key string) func() {
+	value, _ := m.mutexes.LoadOrStore(key, &sync.RWMutex{})
+	mtx := value.(*sync.RWMutex)
+	mtx.RLock()
+
+	return func() { mtx.RUnlock() }
+}
+
 // The logic is having a map store key that is pointing to a doubly linked list element.
 // This way we can have O(1) delete, insert and update operations.
-
 type OrderedMap struct {
-	data  map[string]*list.Element
-	order *list.List
-	mutex *sync.RWMutex
+	data       map[string]*list.Element
+	order      *list.List
+	mutex      *sync.RWMutex
+	KeyedMutex KeyedMutex
 }
 
 type Pair struct {
 	Key   string
 	Value string
-	mu    *sync.RWMutex
 }
 
 func NewOrderedMap() *OrderedMap {
 	return &OrderedMap{
-		data:  make(map[string]*list.Element),
-		order: list.New(),
-		mutex: &sync.RWMutex{},
+		data:       make(map[string]*list.Element),
+		order:      list.New(),
+		mutex:      &sync.RWMutex{},
+		KeyedMutex: KeyedMutex{},
 	}
 }
 
-func (om *OrderedMap) AddItem(key string, value string) {
+func (om *OrderedMap) AddItem(key string, value string) string {
 	element, exists := om.data[key]
 	if exists {
 		element.Value.(*Pair).Value = value
 	} else {
 		// Insert new element
-		pair := &Pair{key, value, &sync.RWMutex{}}
+		pair := &Pair{key, value}
 		element := om.order.PushBack(pair)
 		om.data[key] = element
 	}
+	return om.data[key].Value.(*Pair).Value
 }
 
-func (om *OrderedMap) DeleteItem(key string) {
+func (om *OrderedMap) DeleteItem(key string) bool {
 	element, exists := om.data[key]
+	var isDeleted bool
 	if exists {
 		om.order.Remove(element)
 		delete(om.data, key)
+		isDeleted = true
 	} else {
-		fmt.Printf("Item: %s not found\n", key)
+		isDeleted = false
 	}
+	return isDeleted
 }
 
 func (om *OrderedMap) GetItem(key string) (string, bool) {
@@ -76,25 +101,34 @@ func (om *OrderedMap) GetAllItems() []Pair {
 func (om *OrderedMap) HandleCommand(message models.Command, logger *log.Logger, wg *sync.WaitGroup) {
 	switch message.Action {
 	case "addItem":
-		om.AddItem(message.Key, message.Value)
-		fmt.Printf("Added: %s -> %s\n", message.Key, message.Value)
+		unlock := om.KeyedMutex.Lock(message.Key)
+		val := om.AddItem(message.Key, message.Value)
+		fmt.Printf("Added: %s -> %s\n", message.Key, val)
+		unlock()
 	case "deleteItem":
-		om.DeleteItem(message.Key)
-		fmt.Printf("Deleted: %s\n", message.Key)
+		unlock := om.KeyedMutex.Lock(message.Key)
+		isDeleted := om.DeleteItem(message.Key)
+		if isDeleted {
+			fmt.Printf("Deleted: %s\n", message.Key)
+		} else {
+			fmt.Printf("Item: %s not found\n", message.Key)
+		}
+		unlock()
 	case "getItem":
-		om.mutex.RLock()
+		runlock := om.KeyedMutex.RLock(message.Key)
 		wg.Add(1)
-		go func() {
-			defer om.mutex.RUnlock()
+		go func(runlock func()) {
+			defer runlock()
 			defer wg.Done()
 			value, exists := om.GetItem(message.Key)
 			if exists {
 				logger.Printf("Get Item: %s -> %s\n", message.Key, value)
 				fmt.Printf("Get Item: %s -> %s\n", message.Key, value)
 			} else {
+				logger.Printf("Item: %s not found\n", message.Key)
 				fmt.Printf("Item: %s not found\n", message.Key)
 			}
-		}()
+		}(runlock)
 	case "getAllItems":
 		om.mutex.RLock()
 		wg.Add(1)
