@@ -22,7 +22,7 @@ type SQSService struct {
 // TODO: Add the necessary structs and methods to implement the send and receive messages
 // Should include the Command struct in it, with sqs additions.
 // Unused
-type sendMessage struct {
+type Commnad struct {
 	Action string `json:"Action"`
 	Key    string `json:"key,omitempty"`
 	Value  string `json:"value,omitempty"`
@@ -30,15 +30,13 @@ type sendMessage struct {
 
 // Unused
 type RecievedMessage struct {
-	Action        string `json:"Action"`
-	Key           string `json:"key,omitempty"`
-	Value         string `json:"value,omitempty"`
+	Commnad       Commnad
 	GroupID       string
 	ReceiptHandle *string
 }
 
-// Inits connection to SQSDA
-func NewMessagingService(config map[string]string) (*SQSService, error) {
+// Inits connection to SQS
+func New(config map[string]string) (*SQSService, error) {
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(config["region"]),
 		Credentials: credentials.NewStaticCredentials(config["aws_access_key_id"], config["aws_secret_access_key"], ""),

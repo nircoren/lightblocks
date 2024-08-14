@@ -6,8 +6,6 @@ import (
 	"github.com/nircoren/lightblocks/queue/models"
 )
 
-const SqsMaxBatchSize int = 10
-
 type sendActions interface {
 	SendMessages(messages []models.Command, userName string) error
 }
@@ -30,8 +28,6 @@ func SendMessages(queueProvider *MessagingService, messages []models.Command, us
 			log.Printf("Unknown command: %s\n", msg.Action)
 		}
 	}
-
-	// Split the messages into batches of 10 as its the max for sqs
 
 	// We don't use goroutine to maintain the order of the messages of user.
 	err := queueProvider.actions.SendMessages(filteredMessages, userName)

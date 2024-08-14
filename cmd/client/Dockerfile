@@ -12,9 +12,7 @@ RUN go install github.com/air-verse/air@latest
 
 COPY . .
 
-COPY cmd/client/main.go .
-
-RUN GOOS=linux GOARCH=amd64 go build -o /app/bin/client
+RUN GOOS=linux GOARCH=amd64 go build -o /app/bin/client ./cmd/server
 
 RUN chmod +x /app/bin/client
 
