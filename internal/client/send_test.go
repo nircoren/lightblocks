@@ -43,7 +43,7 @@ func TestSendMessages(t *testing.T) {
 		"aws_secret_access_key": os.Getenv("AWS_SECRET_ACCESS_KEY"),
 		"queueURL":              os.Getenv("QUEUE_URL"),
 	}
-	SQSService, err := sqs.NewMessagingService(config)
+	SQSService, err := sqs.New(config)
 	if err != nil {
 		t.Fatalf("Error creating SQS service: %s", err)
 		return

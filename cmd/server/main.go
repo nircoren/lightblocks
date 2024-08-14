@@ -26,7 +26,7 @@ func main() {
 	}
 
 	// Dependency Injection of sqs
-	SQSService, err := sqs.NewMessagingService(config)
+	SQSService, err := sqs.New(config)
 	if err != nil {
 		fmt.Println("Error creating SQS service: ", err)
 		return

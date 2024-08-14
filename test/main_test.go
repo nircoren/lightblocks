@@ -36,7 +36,7 @@ func TestMain(t *testing.T) {
 	}
 
 	// Init sending messages
-	SQSService, err := sqs.NewMessagingService(config)
+	SQSService, err := sqs.New(config)
 	if err != nil {
 		t.Fatalf("Error creating SQS service: %s", err)
 		return

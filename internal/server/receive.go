@@ -71,19 +71,16 @@ func fetchAndProcessMessages(fetchChan chan struct{}, orderedMap *OrderedMap, qu
 	}
 
 	for _, message := range messages {
-		sendMessageToWorker(message, groupChanMap, orderedMap, queueProvider, logger, deleteMessages, workersWg, channelCloser)
+		if _, exists := groupChanMap[message.GroupID]; !exists {
+			groupChanMap[message.GroupID] = make(chan models.Command)
+			workersWg.Add(1)
+			go initWorker(orderedMap, queueProvider, message.GroupID, groupChanMap[message.GroupID], logger, deleteMessages, channelCloser, workersWg)
+		}
+		groupChanMap[message.GroupID] <- message
 	}
 }
 
-func sendMessageToWorker(message models.Command, groupChanMap map[string]chan models.Command, orderedMap *OrderedMap, queueProvider *MessagingService, logger *log.Logger, deleteMessages bool, workersWg *sync.WaitGroup, channelCloser chan string) {
-	if _, exists := groupChanMap[message.GroupID]; !exists {
-		groupChanMap[message.GroupID] = make(chan models.Command)
-		workersWg.Add(1)
-		go initWorker(orderedMap, queueProvider, message.GroupID, groupChanMap[message.GroupID], logger, deleteMessages, channelCloser, workersWg)
-	}
-	groupChanMap[message.GroupID] <- message
-}
-
+// Worker waits for messages on a channel and processes them. if no messages are received for 5 seconds, the worker exits
 func initWorker(orderedMap *OrderedMap, queueProvider *MessagingService, workerID string, messageChan <-chan models.Command, logger *log.Logger, deleteMessages bool, channelCloser chan string, workersWg *sync.WaitGroup) {
 	defer workersWg.Done()
 
@@ -93,7 +90,7 @@ func initWorker(orderedMap *OrderedMap, queueProvider *MessagingService, workerI
 		select {
 		case message, ok := <-messageChan:
 			if !ok {
-				return
+				continue
 			}
 			processSingleMessage(orderedMap, message, logger, deleteMessages, queueProvider, workersWg)
 		case <-time.After(timeoutDuration):
