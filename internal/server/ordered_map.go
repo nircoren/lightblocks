@@ -115,10 +115,10 @@ func (om *OrderedMap) HandleCommand(message models.Command, logger *log.Logger, 
 		}
 		unlock()
 	case "getItem":
-		runlock := om.KeyedMutex.RLock(message.Key)
+		rUnlcok := om.KeyedMutex.RLock(message.Key)
 		wg.Add(1)
-		go func(runlock func()) {
-			defer runlock()
+		go func(rUnlcok func()) {
+			defer rUnlcok()
 			defer wg.Done()
 			value, exists := om.GetItem(message.Key)
 			if exists {
@@ -128,7 +128,7 @@ func (om *OrderedMap) HandleCommand(message models.Command, logger *log.Logger, 
 				logger.Printf("Item: %s not found\n", message.Key)
 				fmt.Printf("Item: %s not found\n", message.Key)
 			}
-		}(runlock)
+		}(rUnlcok)
 	case "getAllItems":
 		om.mutex.RLock()
 		wg.Add(1)

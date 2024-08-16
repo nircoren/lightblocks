@@ -24,7 +24,7 @@ func NewMessagingService(a receiveActions) *MessagingService {
 
 // We have a map of channels that are used to send messages to workers
 // Each worker is responsible for processing messages of a specific group (user)
-func ReceiveMessages(queueProvider *MessagingService, orderedMap *OrderedMap, logger *log.Logger, deleteMessages bool) error {
+func ReceiveMessages(queueProvider *MessagingService, orderedMap *OrderedMap, logger *log.Logger) error {
 	groupChanMap := make(map[string]chan models.Command)
 	channelCloser := make(chan string)
 	var workersWg sync.WaitGroup
@@ -37,9 +37,8 @@ func ReceiveMessages(queueProvider *MessagingService, orderedMap *OrderedMap, lo
 	fetchChan := make(chan struct{}, fetchWorkers)
 
 	// Start message fetching and processing
-	startMessageFetcher(orderedMap, queueProvider, logger, deleteMessages, &workersWg, fetchChan, groupChanMap, channelCloser)
+	startMessageFetcher(orderedMap, queueProvider, logger, &workersWg, fetchChan, groupChanMap, channelCloser)
 
-	// Wait for all workers to finish
 	workersWg.Wait()
 	cleanupResources(fetchChan, channelCloser, groupChanMap)
 
@@ -54,14 +53,14 @@ func handleChannelClosures(workersWg *sync.WaitGroup, groupChanMap map[string]ch
 	}
 }
 
-func startMessageFetcher(orderedMap *OrderedMap, queueProvider *MessagingService, logger *log.Logger, deleteMessages bool, workersWg *sync.WaitGroup, fetchChan chan struct{}, groupChanMap map[string]chan models.Command, channelCloser chan string) {
+func startMessageFetcher(orderedMap *OrderedMap, queueProvider *MessagingService, logger *log.Logger, workersWg *sync.WaitGroup, fetchChan chan struct{}, groupChanMap map[string]chan models.Command, channelCloser chan string) {
 	for {
 		fetchChan <- struct{}{}
-		go fetchAndProcessMessages(fetchChan, orderedMap, queueProvider, logger, deleteMessages, workersWg, groupChanMap, channelCloser)
+		go fetchAndProcessMessages(fetchChan, orderedMap, queueProvider, logger, workersWg, groupChanMap, channelCloser)
 	}
 }
 
-func fetchAndProcessMessages(fetchChan chan struct{}, orderedMap *OrderedMap, queueProvider *MessagingService, logger *log.Logger, deleteMessages bool, workersWg *sync.WaitGroup, groupChanMap map[string]chan models.Command, channelCloser chan string) {
+func fetchAndProcessMessages(fetchChan chan struct{}, orderedMap *OrderedMap, queueProvider *MessagingService, logger *log.Logger, workersWg *sync.WaitGroup, groupChanMap map[string]chan models.Command, channelCloser chan string) {
 	defer func() { <-fetchChan }()
 
 	messages, err := queueProvider.actions.ReceiveMessages()
@@ -69,19 +68,20 @@ func fetchAndProcessMessages(fetchChan chan struct{}, orderedMap *OrderedMap, qu
 		logger.Printf("Error receiving messages: %v", err)
 		return
 	}
-
+	// goroutine?
 	for _, message := range messages {
 		if _, exists := groupChanMap[message.GroupID]; !exists {
 			groupChanMap[message.GroupID] = make(chan models.Command)
 			workersWg.Add(1)
-			go initWorker(orderedMap, queueProvider, message.GroupID, groupChanMap[message.GroupID], logger, deleteMessages, channelCloser, workersWg)
+			go initWorker(orderedMap, queueProvider, message.GroupID, groupChanMap[message.GroupID], logger, channelCloser, workersWg)
 		}
+
 		groupChanMap[message.GroupID] <- message
 	}
 }
 
 // Worker waits for messages on a channel and processes them. if no messages are received for 5 seconds, the worker exits
-func initWorker(orderedMap *OrderedMap, queueProvider *MessagingService, workerID string, messageChan <-chan models.Command, logger *log.Logger, deleteMessages bool, channelCloser chan string, workersWg *sync.WaitGroup) {
+func initWorker(orderedMap *OrderedMap, queueProvider *MessagingService, workerID string, messageChan <-chan models.Command, logger *log.Logger, channelCloser chan string, workersWg *sync.WaitGroup) {
 	defer workersWg.Done()
 
 	timeoutDuration := 5 * time.Second
@@ -92,7 +92,7 @@ func initWorker(orderedMap *OrderedMap, queueProvider *MessagingService, workerI
 			if !ok {
 				continue
 			}
-			processSingleMessage(orderedMap, message, logger, deleteMessages, queueProvider, workersWg)
+			processSingleMessage(orderedMap, message, logger, queueProvider, workersWg)
 		case <-time.After(timeoutDuration):
 			channelCloser <- workerID
 			fmt.Println("No messages received for 5 seconds")
@@ -101,19 +101,17 @@ func initWorker(orderedMap *OrderedMap, queueProvider *MessagingService, workerI
 	}
 }
 
-func processSingleMessage(orderedMap *OrderedMap, message models.Command, logger *log.Logger, deleteMessages bool, queueProvider *MessagingService, workersWg *sync.WaitGroup) {
+func processSingleMessage(orderedMap *OrderedMap, message models.Command, logger *log.Logger, queueProvider *MessagingService, workersWg *sync.WaitGroup) {
 	orderedMap.HandleCommand(message, logger, workersWg)
 
-	if deleteMessages {
-		workersWg.Add(1)
-		go func(receiptHandle *string) {
-			defer workersWg.Done()
-			err := queueProvider.actions.DeleteMessage(receiptHandle)
-			if err != nil {
-				logger.Printf("Failed to delete message: %v", err)
-			}
-		}(message.ReceiptHandle)
-	}
+	workersWg.Add(1)
+	go func(receiptHandle *string) {
+		defer workersWg.Done()
+		err := queueProvider.actions.DeleteMessage(receiptHandle)
+		if err != nil {
+			logger.Printf("Failed to delete message: %v", err)
+		}
+	}(message.ReceiptHandle)
 }
 
 func cleanupResources(fetchChan chan struct{}, channelCloser chan string, groupChanMap map[string]chan models.Command) {

@@ -11,7 +11,8 @@ import (
 	"github.com/nircoren/lightblocks/util"
 )
 
-// Test if messages are received.
+// Test if service reaches provider without errors.
+// I assume this test is not on production
 func TestReceive(t *testing.T) {
 	OrderMap := NewOrderedMap()
 	logger, _ := util.SetupLogger("logs/test_sqs_messages.log")
@@ -45,8 +46,7 @@ func receiveMessagesWithTimeout(orderMap *OrderedMap, logger *log.Logger, timeou
 	queueProvider := NewMessagingService(SQSService)
 
 	go func() {
-		// Don't want to delete messages in the test as i can't control the messages that will return
-		errChan <- ReceiveMessages(queueProvider, orderMap, logger, false)
+		errChan <- ReceiveMessages(queueProvider, orderMap, logger)
 	}()
 
 	select {

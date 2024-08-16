@@ -11,30 +11,12 @@ import (
 
 func TestSendMessages(t *testing.T) {
 
-	Messages := []models.Command{
-		{
-			Action: "addItem",
-			Key:    "key1",
-			Value:  "test",
-		},
-		{
-			Action: "addItem",
-			Key:    "key2",
-			Value:  "test",
-		},
-		{
-			Action: "addItem",
-			Key:    "key3",
-			Value:  "test",
-		},
-		{
-			Action: "addItem",
-			Key:    "key4",
-			Value:  "test",
-		},
-		{
-			Action: "getAllItems",
-		},
+	messages := &[]models.Command{
+		{CommandBase: models.CommandBase{Action: "addItem", Key: "key1", Value: "test"}},
+		{CommandBase: models.CommandBase{Action: "addItem", Key: "key2", Value: "test"}},
+		{CommandBase: models.CommandBase{Action: "addItem", Key: "key3", Value: "test"}},
+		{CommandBase: models.CommandBase{Action: "addItem", Key: "key4", Value: "test"}},
+		{CommandBase: models.CommandBase{Action: "getAllItems"}},
 	}
 
 	config := map[string]string{
@@ -57,7 +39,7 @@ func TestSendMessages(t *testing.T) {
 		go func(t *testing.T) {
 			defer wg.Done()
 
-			err = SendMessages(queueProviderSend, Messages, users[i])
+			err = SendMessages(queueProviderSend, *messages, users[i])
 			if err != nil {
 				t.Errorf("Error sending messages: %s", err)
 			}

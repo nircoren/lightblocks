@@ -34,6 +34,6 @@ func main() {
 
 	queueProvider := server.NewMessagingService(SQSService)
 
-	server.ReceiveMessages(queueProvider, orderedMap, logger, true)
+	server.ReceiveMessages(queueProvider, orderedMap, logger)
 
 }

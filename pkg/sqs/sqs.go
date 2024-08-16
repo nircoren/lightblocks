@@ -21,19 +21,6 @@ type SQSService struct {
 
 // TODO: Add the necessary structs and methods to implement the send and receive messages
 // Should include the Command struct in it, with sqs additions.
-// Unused
-type Commnad struct {
-	Action string `json:"Action"`
-	Key    string `json:"key,omitempty"`
-	Value  string `json:"value,omitempty"`
-}
-
-// Unused
-type RecievedMessage struct {
-	Commnad       Commnad
-	GroupID       string
-	ReceiptHandle *string
-}
 
 // Inits connection to SQS
 func New(config map[string]string) (*SQSService, error) {
@@ -157,16 +144,10 @@ func makeMessageModel(message *sqs.Message) (*models.Command, error) {
 	}
 
 	// Validate the command
-	if _, allowed := models.AllowedActionsMap[messageModel.Action]; !allowed {
-		log.Printf("Invalid command: %s", messageModel.Action)
-		return nil, fmt.Errorf("invalid command: %s", messageModel.Action)
+	if err := messageModel.Validate(); err != nil {
+		log.Printf("Invalid command: %v\n", err)
+		return nil, fmt.Errorf("invalid command: %v", err)
 	}
-
-	if messageModel.Action == "addItem" && (messageModel.Key == "" || messageModel.Value == "") {
-		log.Printf("Missing key or value for addItem command: %s", *message.Body)
-		return nil, fmt.Errorf("missing key or value for addItem command")
-	}
-
 	messageModel.GroupID = *message.Attributes["MessageGroupId"]
 	messageModel.ReceiptHandle = message.ReceiptHandle
 

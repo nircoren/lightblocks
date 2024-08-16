@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/nircoren/lightblocks/internal/client"
 	"github.com/nircoren/lightblocks/internal/server"
@@ -11,22 +12,27 @@ import (
 	"github.com/nircoren/lightblocks/util"
 )
 
-// Need to test on empty queue.
+// Test that messages are sent and received correctly
+// Need to add a test for read, as its async
+// Test on empty queue that is not production
 func TestMain(t *testing.T) {
 
-	messages := []models.Command{
-		{Action: "addItem", Key: "1", Value: "v1"},
-		{Action: "addItem", Key: "2", Value: "v2"},
-		{Action: "addItem", Key: "4", Value: "val4"},
-		{Action: "getItem", Key: "1"},
-		{Action: "deleteItem", Key: "1"},
-		{Action: "getItem", Key: "1"},
-		{Action: "getItem", Key: "2"},
-		{Action: "getItem", Key: "3"},
-		{Action: "addItem", Key: "3", Value: "v3"},
-		{Action: "getItem", Key: "4"},
-		{Action: "getItem"},
+	messages := &[]models.Command{
+		{CommandBase: models.CommandBase{Action: "addItem", Key: "1", Value: "v1"}},
+		{CommandBase: models.CommandBase{Action: "addItem", Key: "2", Value: "v2"}},
+		{CommandBase: models.CommandBase{Action: "addItem", Key: "3", Value: "v3"}},
+		{CommandBase: models.CommandBase{Action: "deleteItem", Key: "1"}},
+		{CommandBase: models.CommandBase{Action: "addItem", Key: "4", Value: "v4"}},
 	}
+
+	expected := map[string]string{
+		"1": "",
+		"2": "v2",
+		"3": "v3",
+		"4": "val4",
+	}
+
+	// expected := {}interface{}{
 
 	config := map[string]string{
 		"region":                os.Getenv("AWS_REGION"),
@@ -44,7 +50,7 @@ func TestMain(t *testing.T) {
 
 	queueProviderSend := client.NewMessagingService(SQSService)
 
-	err = client.SendMessages(queueProviderSend, messages, "test")
+	err = client.SendMessages(queueProviderSend, *messages, "test")
 	if err != nil {
 		t.Fatalf("Error sending messages: %s", err)
 	}
@@ -58,20 +64,18 @@ func TestMain(t *testing.T) {
 	queueProviderReceive := server.NewMessagingService(SQSService)
 
 	orderedMap := server.NewOrderedMap()
-	err = server.ReceiveMessages(queueProviderReceive, orderedMap, logger, true)
+	err = server.ReceiveMessages(queueProviderReceive, orderedMap, logger)
 	if err != nil {
 		t.Fatalf("Error receiving messages: %s", err)
 	}
 
-	// expected := []interface{key,value}{
-	// 	{"key": "1", "val": ""},
-	// 	{"key": "2", "val": "v2"},
-	// 	{"key": "3", "val": "v3"},
-	// 	{"key": "4", "val": "v4"},
-	// }
+	time.Sleep(5 * time.Second)
+	allItems := orderedMap.GetAllItems()
 
-	// for _, res := range expected {
-	// 	orderedMap[res]
-	// }
+	for _, item := range allItems {
+		if item.Value != expected[item.Key] {
+			t.Fatalf("Expected: %s, got: %s", expected[item.Key], item.Value)
+		}
+	}
 
 }
