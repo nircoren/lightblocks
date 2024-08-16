@@ -8,12 +8,10 @@ COPY /go.mod .
 
 RUN go mod download
 
-RUN go install github.com/air-verse/air@latest
-
 COPY . .
 
-RUN GOOS=linux GOARCH=amd64 go build -o /app/bin/client ./cmd/server
+RUN GOOS=linux GOARCH=amd64 go build -o /app/bin/client ./cmd/client
 
 RUN chmod +x /app/bin/client
 
-CMD ["air", "-c", ".air.toml"]
+CMD ["/app/client"]

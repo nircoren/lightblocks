@@ -3,11 +3,12 @@ package server
 import (
 	"context"
 	"log"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/nircoren/lightblocks/pkg/sqs"
-	"github.com/nircoren/lightblocks/util"
+	"github.com/nircoren/lightblocks/server/util"
 )
 
 // Test if service reaches provider without errors.
@@ -30,7 +31,14 @@ func receiveMessagesWithTimeout(orderMap *OrderedMap, logger *log.Logger, timeou
 
 	errChan := make(chan error, 1)
 
-	SQSService, err := sqs.New()
+	config := map[string]string{
+		"region":                os.Getenv("AWS_REGION"),
+		"aws_access_key_id":     os.Getenv("AWS_ACCESS_KEY_ID"),
+		"aws_secret_access_key": os.Getenv("AWS_SECRET_ACCESS_KEY"),
+		"queueURL":              os.Getenv("QUEUE_URL"),
+	}
+	// Dependency Injection of SQS
+	SQSService, err := sqs.New(config)
 	if err != nil {
 		t.Fatalf("Error creating SQS service: %s", err)
 		return err

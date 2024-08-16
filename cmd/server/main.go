@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
+	"os"
 
-	"github.com/nircoren/lightblocks/internal/server"
 	"github.com/nircoren/lightblocks/pkg/sqs"
-	"github.com/nircoren/lightblocks/util"
+	"github.com/nircoren/lightblocks/server"
+	"github.com/nircoren/lightblocks/server/util"
 )
 
 func main() {
@@ -18,7 +19,15 @@ func main() {
 	}
 
 	// Dependency Injection of sqs
-	SQSService, err := sqs.New()
+	config := map[string]string{
+		"region":                os.Getenv("AWS_REGION"),
+		"aws_access_key_id":     os.Getenv("AWS_ACCESS_KEY_ID"),
+		"aws_secret_access_key": os.Getenv("AWS_SECRET_ACCESS_KEY"),
+		"queueURL":              os.Getenv("QUEUE_URL"),
+	}
+	// Dependency Injection of SQS
+	SQSService, err := sqs.New(config)
+
 	if err != nil {
 		fmt.Println("Error creating SQS service: ", err)
 		return
