@@ -1,14 +1,13 @@
 package client
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/nircoren/lightblocks/queue/models"
 )
 
 type sendActions interface {
-	SendMessages(messages []models.Command, userName string) error
+	SendMessages(messages []models.CommandBase, userName string) error
 }
 
 type MessagingService struct {
@@ -19,9 +18,9 @@ func NewMessagingService(a sendActions) *MessagingService {
 	return &MessagingService{actions: a}
 }
 
-func SendMessages(queueProvider *MessagingService, messages []models.Command, userName string) error {
-	fmt.Printf("Sending messages: %v\n", messages)
-	filteredMessages := []models.Command{}
+func SendMessages(queueProvider *MessagingService, messages []models.CommandBase, userName string) error {
+	// Max capacity of the slice is the same as the length of the messages slice.
+	filteredMessages := make([]models.CommandBase, 0, len(messages))
 	for _, message := range messages {
 		// Validate the command
 		if err := message.Validate(); err != nil {

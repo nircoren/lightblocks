@@ -38,7 +38,7 @@ func New(config map[string]string) (*SQSService, error) {
 	}, nil
 }
 
-func (s *SQSService) SendMessages(messages []models.Command, userName string) error {
+func (s *SQSService) SendMessages(messages []models.CommandBase, userName string) error {
 	const SqsMaxBatchSize int = 10
 
 	for i := 0; i < len(messages); i += SqsMaxBatchSize {
@@ -108,7 +108,7 @@ func (s *SQSService) DeleteMessage(receiptHandle *string) error {
 
 }
 
-func (s *SQSService) sendBatch(Commands []models.Command, userName string) error {
+func (s *SQSService) sendBatch(Commands []models.CommandBase, userName string) error {
 	entries := make([]*sqs.SendMessageBatchRequestEntry, len(Commands))
 	for i, Command := range Commands {
 		// Convert command struct to JSON string for the message body

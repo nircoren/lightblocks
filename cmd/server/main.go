@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"os"
 
+	"github.com/joho/godotenv"
 	"github.com/nircoren/lightblocks/pkg/sqs"
 	"github.com/nircoren/lightblocks/server"
 	"github.com/nircoren/lightblocks/server/util"
@@ -19,11 +19,10 @@ func main() {
 	}
 
 	// Dependency Injection of sqs
-	config := map[string]string{
-		"region":                os.Getenv("AWS_REGION"),
-		"aws_access_key_id":     os.Getenv("AWS_ACCESS_KEY_ID"),
-		"aws_secret_access_key": os.Getenv("AWS_SECRET_ACCESS_KEY"),
-		"queueURL":              os.Getenv("QUEUE_URL"),
+	config, err := godotenv.Read()
+	if err != nil {
+		fmt.Println("Error reading .env file: ", err)
+		return
 	}
 	// Dependency Injection of SQS
 	SQSService, err := sqs.New(config)

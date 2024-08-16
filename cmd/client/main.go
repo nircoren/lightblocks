@@ -19,13 +19,12 @@ func main() {
 	if err != nil {
 		log.Println("Error loading .env file:", err)
 	}
-
-	config := map[string]string{
-		"region":                os.Getenv("AWS_REGION"),
-		"aws_access_key_id":     os.Getenv("AWS_ACCESS_KEY_ID"),
-		"aws_secret_access_key": os.Getenv("AWS_SECRET_ACCESS_KEY"),
-		"queueURL":              os.Getenv("QUEUE_URL"),
+	// Read all the environment variables.
+	config, err := godotenv.Read()
+	if err != nil {
+		log.Println("Error reading .env file:", err)
 	}
+
 	// Dependency Injection of SQS
 	SQSService, err := sqs.New(config)
 	if err != nil {
@@ -53,7 +52,7 @@ func main() {
 	}
 
 	// Parse messages
-	var messages []models.Command
+	var messages []models.CommandBase
 	err = json.Unmarshal([]byte(rawMessages), &messages)
 	if err != nil {
 		log.Println("Error unmarshaling JSON:", err)

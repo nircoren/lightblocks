@@ -1,10 +1,10 @@
 package main
 
 import (
-	"os"
 	"testing"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/nircoren/lightblocks/client"
 	"github.com/nircoren/lightblocks/pkg/sqs"
 	"github.com/nircoren/lightblocks/queue/models"
@@ -17,12 +17,12 @@ import (
 // Test on empty queue that is not production
 func TestMain(t *testing.T) {
 
-	messages := &[]models.Command{
-		{CommandBase: models.CommandBase{Action: "addItem", Key: "1", Value: "v1"}},
-		{CommandBase: models.CommandBase{Action: "addItem", Key: "2", Value: "v2"}},
-		{CommandBase: models.CommandBase{Action: "addItem", Key: "3", Value: "v3"}},
-		{CommandBase: models.CommandBase{Action: "deleteItem", Key: "1"}},
-		{CommandBase: models.CommandBase{Action: "addItem", Key: "4", Value: "v4"}},
+	messages := &[]models.CommandBase{
+		{Action: "addItem", Key: "1", Value: "ה1"},
+		{Action: "addItem", Key: "2", Value: "v2"},
+		{Action: "addItem", Key: "3", Value: "v3"},
+		{Action: "deleteItem", Key: "1"},
+		{Action: "addItem", Key: "4", Value: "v4"},
 	}
 
 	expected := map[string]string{
@@ -33,11 +33,9 @@ func TestMain(t *testing.T) {
 	}
 
 	// Init sending messages
-	config := map[string]string{
-		"region":                os.Getenv("AWS_REGION"),
-		"aws_access_key_id":     os.Getenv("AWS_ACCESS_KEY_ID"),
-		"aws_secret_access_key": os.Getenv("AWS_SECRET_ACCESS_KEY"),
-		"queueURL":              os.Getenv("QUEUE_URL"),
+	config, err := godotenv.Read()
+	if err != nil {
+		t.Fatalf("Error reading .env file: %s", err)
 	}
 	// Dependency Injection of SQS
 	SQSService, err := sqs.New(config)

@@ -23,7 +23,7 @@ func TestOrdered_map(t *testing.T) {
 	OrderMap.DeleteItem("key9")
 	_, exists = OrderMap.GetItem("key9")
 	if exists {
-		fmt.Printf("Deleting keys doesn't work.")
+		t.Fatalf("Deleting keys doesn't work.")
 	}
 
 	items := OrderMap.GetAllItems()

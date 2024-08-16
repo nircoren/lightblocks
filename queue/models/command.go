@@ -16,7 +16,7 @@ type Command struct {
 	ReceiptHandle *string
 }
 
-func (c *Command) Validate() error {
+func (c *CommandBase) Validate() error {
 	switch c.Action {
 	case "getAllItems":
 		if c.Key != "" || c.Value != "" {
