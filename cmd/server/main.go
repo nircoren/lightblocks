@@ -3,9 +3,10 @@ package main
 import (
 	"fmt"
 
-	"github.com/nircoren/lightblocks/internal/server"
+	"github.com/joho/godotenv"
 	"github.com/nircoren/lightblocks/pkg/sqs"
-	"github.com/nircoren/lightblocks/util"
+	"github.com/nircoren/lightblocks/server"
+	"github.com/nircoren/lightblocks/server/util"
 )
 
 func main() {
@@ -18,7 +19,14 @@ func main() {
 	}
 
 	// Dependency Injection of sqs
-	SQSService, err := sqs.New()
+	config, err := godotenv.Read()
+	if err != nil {
+		fmt.Println("Error reading .env file: ", err)
+		return
+	}
+	// Dependency Injection of SQS
+	SQSService, err := sqs.New(config)
+
 	if err != nil {
 		fmt.Println("Error creating SQS service: ", err)
 		return

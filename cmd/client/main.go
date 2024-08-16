@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/joho/godotenv"
-	"github.com/nircoren/lightblocks/internal/client"
+	"github.com/nircoren/lightblocks/client"
 	"github.com/nircoren/lightblocks/pkg/sqs"
 	"github.com/nircoren/lightblocks/queue/models"
 )
@@ -19,9 +19,14 @@ func main() {
 	if err != nil {
 		log.Println("Error loading .env file:", err)
 	}
+	// Read all the environment variables.
+	config, err := godotenv.Read()
+	if err != nil {
+		log.Println("Error reading .env file:", err)
+	}
 
 	// Dependency Injection of SQS
-	SQSService, err := sqs.New()
+	SQSService, err := sqs.New(config)
 	if err != nil {
 		log.Println("Error creating SQS service:", err)
 		return
@@ -47,7 +52,7 @@ func main() {
 	}
 
 	// Parse messages
-	var messages []models.Command
+	var messages []models.CommandBase
 	err = json.Unmarshal([]byte(rawMessages), &messages)
 	if err != nil {
 		log.Println("Error unmarshaling JSON:", err)

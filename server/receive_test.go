@@ -6,8 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/nircoren/lightblocks/pkg/sqs"
-	"github.com/nircoren/lightblocks/util"
+	"github.com/nircoren/lightblocks/server/util"
 )
 
 // Test if service reaches provider without errors.
@@ -30,7 +31,12 @@ func receiveMessagesWithTimeout(orderMap *OrderedMap, logger *log.Logger, timeou
 
 	errChan := make(chan error, 1)
 
-	SQSService, err := sqs.New()
+	config, err := godotenv.Read()
+	if err != nil {
+		t.Errorf("Error reading .env file: %s", err)
+	}
+	// Dependency Injection of SQS
+	SQSService, err := sqs.New(config)
 	if err != nil {
 		t.Fatalf("Error creating SQS service: %s", err)
 		return err

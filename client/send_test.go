@@ -4,21 +4,29 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/joho/godotenv"
 	"github.com/nircoren/lightblocks/pkg/sqs"
 	"github.com/nircoren/lightblocks/queue/models"
 )
 
 func TestSendMessages(t *testing.T) {
 
-	messages := &[]models.Command{
-		{CommandBase: models.CommandBase{Action: "addItem", Key: "key1", Value: "test"}},
-		{CommandBase: models.CommandBase{Action: "addItem", Key: "key2", Value: "test"}},
-		{CommandBase: models.CommandBase{Action: "addItem", Key: "key3", Value: "test"}},
-		{CommandBase: models.CommandBase{Action: "addItem", Key: "key4", Value: "test"}},
-		{CommandBase: models.CommandBase{Action: "getAllItems"}},
+	messages := &[]models.CommandBase{
+		{Action: "addItem", Key: "key1", Value: "test"},
+		{Action: "addItem", Key: "key2", Value: "test"},
+		{Action: "addItem", Key: "key3", Value: "test"},
+		{Action: "addItem", Key: "key4", Value: "test"},
+		{Action: "getAllItems"},
 	}
 
-	SQSService, err := sqs.New()
+	config, err := godotenv.Read()
+	if err != nil {
+		t.Errorf("Error reading .env file: %s", err)
+		return
+	}
+	// Dependency Injection of SQS
+	SQSService, err := sqs.New(config)
+
 	if err != nil {
 		t.Fatalf("Error creating SQS service: %s", err)
 		return

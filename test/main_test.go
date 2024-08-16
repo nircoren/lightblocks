@@ -4,11 +4,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nircoren/lightblocks/internal/client"
-	"github.com/nircoren/lightblocks/internal/server"
+	"github.com/joho/godotenv"
+	"github.com/nircoren/lightblocks/client"
 	"github.com/nircoren/lightblocks/pkg/sqs"
 	"github.com/nircoren/lightblocks/queue/models"
-	"github.com/nircoren/lightblocks/util"
+	"github.com/nircoren/lightblocks/server"
+	"github.com/nircoren/lightblocks/server/util"
 )
 
 // Test that messages are sent and received correctly
@@ -16,12 +17,12 @@ import (
 // Test on empty queue that is not production
 func TestMain(t *testing.T) {
 
-	messages := &[]models.Command{
-		{CommandBase: models.CommandBase{Action: "addItem", Key: "1", Value: "v1"}},
-		{CommandBase: models.CommandBase{Action: "addItem", Key: "2", Value: "v2"}},
-		{CommandBase: models.CommandBase{Action: "addItem", Key: "3", Value: "v3"}},
-		{CommandBase: models.CommandBase{Action: "deleteItem", Key: "1"}},
-		{CommandBase: models.CommandBase{Action: "addItem", Key: "4", Value: "v4"}},
+	messages := &[]models.CommandBase{
+		{Action: "addItem", Key: "1", Value: "ה1"},
+		{Action: "addItem", Key: "2", Value: "v2"},
+		{Action: "addItem", Key: "3", Value: "v3"},
+		{Action: "deleteItem", Key: "1"},
+		{Action: "addItem", Key: "4", Value: "v4"},
 	}
 
 	expected := map[string]string{
@@ -32,7 +33,12 @@ func TestMain(t *testing.T) {
 	}
 
 	// Init sending messages
-	SQSService, err := sqs.New()
+	config, err := godotenv.Read()
+	if err != nil {
+		t.Fatalf("Error reading .env file: %s", err)
+	}
+	// Dependency Injection of SQS
+	SQSService, err := sqs.New(config)
 	if err != nil {
 		t.Fatalf("Error creating SQS service: %s", err)
 		return

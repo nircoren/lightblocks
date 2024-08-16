@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/nircoren/lightblocks/queue/models"
 
@@ -20,18 +19,9 @@ type SQSService struct {
 	queueURL string
 }
 
-// TODO: Add the necessary structs and methods to implement the send and receive messages
-// Should include the Command struct in it, with sqs additions.
-
 // Inits connection to SQS
-func New() (*SQSService, error) {
+func New(config map[string]string) (*SQSService, error) {
 
-	config := map[string]string{
-		"region":                os.Getenv("AWS_REGION"),
-		"aws_access_key_id":     os.Getenv("AWS_ACCESS_KEY_ID"),
-		"aws_secret_access_key": os.Getenv("AWS_SECRET_ACCESS_KEY"),
-		"queueURL":              os.Getenv("QUEUE_URL"),
-	}
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(config["region"]),
 		Credentials: credentials.NewStaticCredentials(config["aws_access_key_id"], config["aws_secret_access_key"], ""),
@@ -48,7 +38,7 @@ func New() (*SQSService, error) {
 	}, nil
 }
 
-func (s *SQSService) SendMessages(messages []models.Command, userName string) error {
+func (s *SQSService) SendMessages(messages []models.CommandBase, userName string) error {
 	const SqsMaxBatchSize int = 10
 
 	for i := 0; i < len(messages); i += SqsMaxBatchSize {
@@ -118,7 +108,7 @@ func (s *SQSService) DeleteMessage(receiptHandle *string) error {
 
 }
 
-func (s *SQSService) sendBatch(Commands []models.Command, userName string) error {
+func (s *SQSService) sendBatch(Commands []models.CommandBase, userName string) error {
 	entries := make([]*sqs.SendMessageBatchRequestEntry, len(Commands))
 	for i, Command := range Commands {
 		// Convert command struct to JSON string for the message body

@@ -10,10 +10,15 @@ RUN go mod download
 
 COPY . .
 
+# RUN go install github.com/air-verse/air@latest
+
+ENV PATH="/go/bin:${PATH}"
+
+
 RUN GOOS=linux GOARCH=amd64 go build -o /app/bin/server ./cmd/server
 
 RUN chmod +x /app/bin/server
 
 ENTRYPOINT [ "/app/bin/server" ]
 
-CMD ["air", "-c", ".air.toml"]
+# CMD ["air", "-c", ".air_server.toml"]
