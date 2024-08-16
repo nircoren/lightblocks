@@ -1,7 +1,6 @@
 package client
 
 import (
-	"os"
 	"sync"
 	"testing"
 
@@ -19,13 +18,7 @@ func TestSendMessages(t *testing.T) {
 		{CommandBase: models.CommandBase{Action: "getAllItems"}},
 	}
 
-	config := map[string]string{
-		"region":                os.Getenv("AWS_REGION"),
-		"aws_access_key_id":     os.Getenv("AWS_ACCESS_KEY_ID"),
-		"aws_secret_access_key": os.Getenv("AWS_SECRET_ACCESS_KEY"),
-		"queueURL":              os.Getenv("QUEUE_URL"),
-	}
-	SQSService, err := sqs.New(config)
+	SQSService, err := sqs.New()
 	if err != nil {
 		t.Fatalf("Error creating SQS service: %s", err)
 		return

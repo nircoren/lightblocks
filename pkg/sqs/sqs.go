@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/nircoren/lightblocks/queue/models"
 
@@ -23,7 +24,14 @@ type SQSService struct {
 // Should include the Command struct in it, with sqs additions.
 
 // Inits connection to SQS
-func New(config map[string]string) (*SQSService, error) {
+func New() (*SQSService, error) {
+
+	config := map[string]string{
+		"region":                os.Getenv("AWS_REGION"),
+		"aws_access_key_id":     os.Getenv("AWS_ACCESS_KEY_ID"),
+		"aws_secret_access_key": os.Getenv("AWS_SECRET_ACCESS_KEY"),
+		"queueURL":              os.Getenv("QUEUE_URL"),
+	}
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(config["region"]),
 		Credentials: credentials.NewStaticCredentials(config["aws_access_key_id"], config["aws_secret_access_key"], ""),
@@ -38,42 +46,6 @@ func New(config map[string]string) (*SQSService, error) {
 		queueURL: config["queueURL"],
 		client:   sqs.New(sess),
 	}, nil
-}
-
-func (s *SQSService) sendBatch(Commands []models.Command, userName string) error {
-	entries := make([]*sqs.SendMessageBatchRequestEntry, len(Commands))
-	for i, Command := range Commands {
-		// Convert command struct to JSON string for the message body
-		actionBody, err := json.Marshal(Command)
-		if err != nil {
-			log.Printf("Error marshalling command: %v\n", err)
-		}
-		msgID := uuid.New().String()
-		entries[i] = &sqs.SendMessageBatchRequestEntry{
-			Id:          aws.String(msgID),
-			MessageBody: aws.String(string(actionBody)),
-			MessageAttributes: map[string]*sqs.MessageAttributeValue{
-				"CommandType": {
-					DataType:    aws.String("String"),
-					StringValue: aws.String(Command.Action),
-				},
-			},
-			MessageGroupId:         aws.String(userName),
-			MessageDeduplicationId: aws.String(msgID),
-		}
-	}
-
-	// Send the batch
-	_, err := s.client.SendMessageBatch(&sqs.SendMessageBatchInput{
-		QueueUrl: aws.String(s.queueURL),
-		Entries:  entries,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (s *SQSService) SendMessages(messages []models.Command, userName string) error {
@@ -122,7 +94,7 @@ func (s *SQSService) ReceiveMessages() ([]models.Command, error) {
 	// Convert the messages to our Message struct
 	messages := make([]models.Command, len(msgResult.Messages))
 	for i, msg := range msgResult.Messages {
-		messageModel, err := makeMessageModel(msg)
+		messageModel, err := formatMessageModel(msg)
 		if err != nil {
 			s.DeleteMessage(msg.ReceiptHandle)
 			continue
@@ -130,10 +102,59 @@ func (s *SQSService) ReceiveMessages() ([]models.Command, error) {
 		messages[i] = *messageModel
 	}
 	return messages, nil
+}
+
+func (s *SQSService) DeleteMessage(receiptHandle *string) error {
+	_, err := s.client.DeleteMessage(&sqs.DeleteMessageInput{
+		QueueUrl:      &s.queueURL,
+		ReceiptHandle: receiptHandle,
+	})
+
+	if err != nil {
+		log.Printf("Failed to delete message: %v", err)
+		return err
+	}
+	return nil
 
 }
 
-func makeMessageModel(message *sqs.Message) (*models.Command, error) {
+func (s *SQSService) sendBatch(Commands []models.Command, userName string) error {
+	entries := make([]*sqs.SendMessageBatchRequestEntry, len(Commands))
+	for i, Command := range Commands {
+		// Convert command struct to JSON string for the message body
+		actionBody, err := json.Marshal(Command)
+		if err != nil {
+			log.Printf("Error marshalling command: %v\n", err)
+		}
+		msgID := uuid.New().String()
+		entries[i] = &sqs.SendMessageBatchRequestEntry{
+			Id:          aws.String(msgID),
+			MessageBody: aws.String(string(actionBody)),
+			MessageAttributes: map[string]*sqs.MessageAttributeValue{
+				"CommandType": {
+					DataType:    aws.String("String"),
+					StringValue: aws.String(Command.Action),
+				},
+			},
+			MessageGroupId:         aws.String(userName),
+			MessageDeduplicationId: aws.String(msgID),
+		}
+	}
+
+	// Send the batch
+	_, err := s.client.SendMessageBatch(&sqs.SendMessageBatchInput{
+		QueueUrl: aws.String(s.queueURL),
+		Entries:  entries,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func formatMessageModel(message *sqs.Message) (*models.Command, error) {
 	messageModel := &models.Command{}
 
 	// Unmarshal the message body into the Message struct
@@ -152,18 +173,4 @@ func makeMessageModel(message *sqs.Message) (*models.Command, error) {
 	messageModel.ReceiptHandle = message.ReceiptHandle
 
 	return messageModel, nil
-}
-
-func (s *SQSService) DeleteMessage(receiptHandle *string) error {
-	_, err := s.client.DeleteMessage(&sqs.DeleteMessageInput{
-		QueueUrl:      &s.queueURL,
-		ReceiptHandle: receiptHandle,
-	})
-
-	if err != nil {
-		log.Printf("Failed to delete message: %v", err)
-		return err
-	}
-	return nil
-
 }

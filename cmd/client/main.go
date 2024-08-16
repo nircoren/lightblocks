@@ -19,16 +19,9 @@ func main() {
 	if err != nil {
 		log.Println("Error loading .env file:", err)
 	}
-	// Setup SQS configuration
-	config := map[string]string{
-		"region":                os.Getenv("AWS_REGION"),
-		"aws_access_key_id":     os.Getenv("AWS_ACCESS_KEY_ID"),
-		"aws_secret_access_key": os.Getenv("AWS_SECRET_ACCESS_KEY"),
-		"queueURL":              os.Getenv("QUEUE_URL"),
-	}
-	fmt.Println(config["region"])
+
 	// Dependency Injection of SQS
-	SQSService, err := sqs.New(config)
+	SQSService, err := sqs.New()
 	if err != nil {
 		log.Println("Error creating SQS service:", err)
 		return
