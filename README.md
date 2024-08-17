@@ -36,7 +36,7 @@ You can try to run multiple instances of the program with different username for
 
 
 <h3> My assumptions during project: </h3>
-	Don't need to remove command from map execute making it. <br />
+	Don't need to remove command from map after execute. <br />
 	Client shouldn't be a server. <br />
 	Order of actions should stay the same for each client, but doesnt matter if order is not the same between 2 different clients <br />
 	Shouldn't cancel sending and receiveing based on one bad message. <br />
