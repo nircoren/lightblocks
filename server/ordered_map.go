@@ -12,14 +12,32 @@ import (
 // Lock keys when writing, rlock when reading
 type KeyedMutex struct {
 	mutexes sync.Map
+	Locked  bool
+	cond    *sync.Cond
+}
+
+func NewKeyedMutex() *KeyedMutex {
+	m := &KeyedMutex{}
+	m.cond = sync.NewCond(&sync.Mutex{}) // Initialize the sync.Cond
+	return m
 }
 
 func (m *KeyedMutex) Lock(key string) func() {
+	m.cond.L.Lock()
+	for m.Locked {
+		m.cond.Wait() // Wait until 'Locked' is false
+	}
+	m.cond.L.Unlock()
+
+	fmt.Println("Locking key: ", key)
 	value, _ := m.mutexes.LoadOrStore(key, &sync.RWMutex{})
 	mtx := value.(*sync.RWMutex)
 	mtx.Lock()
 
-	return func() { mtx.Unlock() }
+	return func() {
+		fmt.Println("Unlocking key: ", key)
+		mtx.Unlock()
+	}
 }
 
 func (m *KeyedMutex) RLock(key string) func() {
@@ -35,8 +53,7 @@ func (m *KeyedMutex) RLock(key string) func() {
 type OrderedMap struct {
 	data       map[string]*list.Element
 	order      *list.List
-	mutex      *sync.RWMutex
-	KeyedMutex KeyedMutex
+	KeyedMutex *KeyedMutex
 }
 
 type Pair struct {
@@ -48,8 +65,7 @@ func NewOrderedMap() *OrderedMap {
 	return &OrderedMap{
 		data:       make(map[string]*list.Element),
 		order:      list.New(),
-		mutex:      &sync.RWMutex{},
-		KeyedMutex: KeyedMutex{},
+		KeyedMutex: NewKeyedMutex(),
 	}
 }
 
@@ -88,7 +104,6 @@ func (om *OrderedMap) GetItem(key string) (string, bool) {
 }
 
 func (om *OrderedMap) GetAllItems() []Pair {
-
 	items := make([]Pair, 0, om.order.Len())
 	for e := om.order.Front(); e != nil; e = e.Next() {
 		pair := e.Value.(*Pair)
@@ -115,10 +130,10 @@ func (om *OrderedMap) HandleCommand(message models.Command, logger *log.Logger, 
 		}
 		unlock()
 	case "getItem":
-		rUnlcok := om.KeyedMutex.RLock(message.Key)
+		rUnlock := om.KeyedMutex.RLock(message.Key)
 		wg.Add(1)
-		go func(rUnlcok func()) {
-			defer rUnlcok()
+		go func(rUnlock func()) {
+			defer rUnlock()
 			defer wg.Done()
 			value, exists := om.GetItem(message.Key)
 			if exists {
@@ -128,12 +143,17 @@ func (om *OrderedMap) HandleCommand(message models.Command, logger *log.Logger, 
 				logger.Printf("Item: %s not found\n", message.Key)
 				fmt.Printf("Item: %s not found\n", message.Key)
 			}
-		}(rUnlcok)
+		}(rUnlock)
 	case "getAllItems":
-		om.mutex.RLock()
+		om.KeyedMutex.cond.L.Lock()
+		om.KeyedMutex.Locked = true
 		wg.Add(1)
 		go func() {
-			defer om.mutex.RUnlock()
+			defer func() {
+				om.KeyedMutex.Locked = false
+				om.KeyedMutex.cond.L.Unlock()
+				om.KeyedMutex.cond.Broadcast()
+			}()
 			defer wg.Done()
 			items := om.GetAllItems()
 			logger.Printf("All items:")

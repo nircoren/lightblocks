@@ -14,6 +14,8 @@ import (
 	"github.com/google/uuid"
 )
 
+var SqsMaxBatchSize = 10
+
 type SQSService struct {
 	client   *sqs.SQS
 	queueURL string
@@ -21,10 +23,9 @@ type SQSService struct {
 
 // Inits connection to SQS
 func New(config map[string]string) (*SQSService, error) {
-
 	sess, err := session.NewSession(&aws.Config{
-		Region:      aws.String(config["region"]),
-		Credentials: credentials.NewStaticCredentials(config["aws_access_key_id"], config["aws_secret_access_key"], ""),
+		Region:      aws.String(config["AWS_REGION"]),
+		Credentials: credentials.NewStaticCredentials(config["AWS_ACCESS_KEY_ID"], config["AWS_SECRET_ACCESS_KEY"], ""),
 	})
 
 	if err != nil {
@@ -33,14 +34,12 @@ func New(config map[string]string) (*SQSService, error) {
 	}
 
 	return &SQSService{
-		queueURL: config["queueURL"],
+		queueURL: config["QUEUE_URL"],
 		client:   sqs.New(sess),
 	}, nil
 }
 
 func (s *SQSService) SendMessages(messages []models.CommandBase, userName string) error {
-	const SqsMaxBatchSize int = 10
-
 	for i := 0; i < len(messages); i += SqsMaxBatchSize {
 		end := i + SqsMaxBatchSize
 		if end > len(messages) {
@@ -67,7 +66,7 @@ func (s *SQSService) ReceiveMessages() ([]models.Command, error) {
 			aws.String(sqs.QueueAttributeNameAll),
 		},
 		QueueUrl:            aws.String(s.queueURL),
-		MaxNumberOfMessages: aws.Int64(10),
+		MaxNumberOfMessages: aws.Int64(int64(SqsMaxBatchSize)),
 		WaitTimeSeconds:     aws.Int64(10),
 	})
 

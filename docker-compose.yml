@@ -2,17 +2,15 @@ services:
   server:
     # image: server_image
     # container_name: server_container
-    command: air
     build:
       context: .
       dockerfile: cmd/server/Dockerfile
     env_file:
-      - .env
+      - ./.env
     ports:
       - "8080:8080"
   client:
     # To keep the container running
-    command: tail -F anything
     # image: client_image
     # container_name: client_container
     build:
@@ -21,5 +19,4 @@ services:
     ports:
       - "3000:3000"
     env_file:
-      - .env
-
+      - ./.env

@@ -31,7 +31,7 @@ func ReceiveMessages(queueProvider *MessagingService, orderedMap *OrderedMap, lo
 	workersWg.Add(1)
 	go handleChannelClosures(&workersWg, groupChanMap, channelCloser)
 
-	const fetchWorkers = 10
+	const fetchWorkers = 2
 	fetchChan := make(chan struct{}, fetchWorkers)
 
 	// Start fetch workers

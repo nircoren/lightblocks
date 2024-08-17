@@ -1,4 +1,4 @@
-FROM golang:1.22.6 AS builder
+FROM golang:1.22.6-alpine AS builder
 
 ENV APP_PORT=8080
 
@@ -10,15 +10,8 @@ RUN go mod download
 
 COPY . .
 
-# RUN go install github.com/air-verse/air@latest
-
-ENV PATH="/go/bin:${PATH}"
-
-
-RUN GOOS=linux GOARCH=amd64 go build -o /app/bin/server ./cmd/server
+RUN GOOS=linux GOARCH=amd64 go build -o /app/bin/server ./cmd/server/main.go
 
 RUN chmod +x /app/bin/server
 
 ENTRYPOINT [ "/app/bin/server" ]
-
-# CMD ["air", "-c", ".air_server.toml"]

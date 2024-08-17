@@ -38,12 +38,31 @@ func main() {
 	reader := bufio.NewReader(os.Stdin)
 
 	fmt.Print("Enter username: ")
-	username, _ := reader.ReadString('\n')
+	username, err := reader.ReadString('\n')
+	if err != nil {
+		log.Println("Error reading username:", err)
+		return
+	}
 	username = strings.TrimSpace(username)
 
-	fmt.Print("Enter messages (in JSON format): ")
-	rawMessages, _ := reader.ReadString('\n')
-	rawMessages = strings.TrimSpace(rawMessages)
+	fmt.Println("Enter messages (in JSON format), followed by an empty line to finish:")
+
+	// Accept multiple lines of input until an empty line is entered
+	var rawMessagesBuilder strings.Builder
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			log.Println("Error reading input:", err)
+			return
+		}
+		line = strings.TrimSpace(line)
+		if line == "" {
+			break
+		}
+		rawMessagesBuilder.WriteString(line)
+	}
+
+	rawMessages := rawMessagesBuilder.String()
 
 	// If no username or messages provided, exit
 	if username == "" || rawMessages == "" {
@@ -65,5 +84,4 @@ func main() {
 	} else {
 		fmt.Println("Messages sent successfully.")
 	}
-
 }

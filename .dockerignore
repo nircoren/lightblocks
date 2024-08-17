@@ -13,8 +13,8 @@ tmp/
 .vscode/
 .idea/
 
-.env
-
 .exe
 
 .vscode
+
+.json

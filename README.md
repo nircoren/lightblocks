@@ -1,28 +1,33 @@
 <b>Quick Start</b>: <br />
-   1. $ git clone https://github.com/nircoren/lightblocks.git <br />
-   2. put .env i sent you on root dir. make sure its called .env <br />
-   3. $ docker-compose up --build <br />
-  4. $ docker exec <containter_name> /app/bin/client --username <username> --msgs <msgs> <br />
-	docker exec sends the messages to client
+	1. run in cmd: $ git clone https://github.com/nircoren/lightblocks.git <br />
+	2. put .env i sent you on root dir. make sure its called .env <br />
+	3. build images: $ docker-compose build
+	4. run server: $ docker-compose up -d server
+	5. run client (remove container after finish): $ docker run --rm -it lightblocks-client
+	6. first prompt will be username, second should be a json in this format:
+		[
+			{
+				"Action": "addItem",
+				"Key": "1",
+				"Value": "val1"
+			},
+			{
+				"Action": "getAllItems"
+			},
+			{
+				"Action": "addItem",
+				"Key": "2",
+				"Value": "val2"
+			}
+		]
 <br/><br/>
-        <b>example input:</b> <br/>
-	$ docker exec lightblocks-client-1 /app/bin/client --username nir --msgs '[{"command":"addItem","key":"key1","value":"value1"},{"command":"addItem","key":"key2","value":"value2"},{"command":"addItem","key":"key3","value":"value3"},{"command": "addItem","key":"key111","value":"yaythere"},{"command":"getAllItems"}]'  <br /> <br />
   !!! might have issue with parsing the json on bash/wt in windows, better to use another terminal. <br /> <br />
-	
-	 Testing:  <br />
-	 $ docker exec -it lightblocks-server-1 /bin/bash <br />
-	 $ go test ./...
-	 <br />
   
-	    When making cli request, docker exec,  you need to pass --username and --message in this format: <br />
-	    username string
-	    type Message struct {
-	      Command string `json:"command"`
-	      Key     string `json:"key,omitempty"`
-	      Value   string `json:"value,omitempty"`
-	    }
+    Example multiple inputs:
 
-    example multiple users: <br /> https://github.com/user-attachments/files/16510323/example_multiple_users.txt
+
+	You can try to run multiple instances of the program with different inputs:
+
 
 
 <b> My assumptions during project: </b> <br />
