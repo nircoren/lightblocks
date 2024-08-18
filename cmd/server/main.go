@@ -18,7 +18,6 @@ func main() {
 		return
 	}
 
-	// Dependency Injection of sqs
 	config, err := godotenv.Read()
 	if err != nil {
 		fmt.Println("Error reading .env file: ", err)
@@ -26,7 +25,6 @@ func main() {
 	}
 	// Dependency Injection of SQS
 	SQSService, err := sqs.New(config)
-
 	if err != nil {
 		fmt.Println("Error creating SQS service: ", err)
 		return
