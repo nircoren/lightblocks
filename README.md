@@ -1,4 +1,4 @@
-<b>!!</b> An updated version on branch <b>new_ver</b>.
+<b>!!</b> An updated version on branch <b>new_ver</b>.<b>!!</b>
 <br/>
 <br/>
 <b>Quick Start</b>: <br/>
