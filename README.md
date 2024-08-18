@@ -1,4 +1,5 @@
-<b>!!</b> An updated version on branch <b>new_ver</b>.<b>!!</b>
+### !! An updated version on branch [new_ver](https://github.com/nircoren/lightblocks/tree/new_ver)!!
+@@ Its better in every way @@
 <br/>
 <br/>
 <b>Quick Start</b>: <br/>
