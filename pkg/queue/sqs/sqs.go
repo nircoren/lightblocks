@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/nircoren/lightblocks/queue/models"
+	"github.com/nircoren/lightblocks/pkg/queue/models"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -76,7 +76,7 @@ func (s *SQSService) ReceiveMessages() ([]models.Command, error) {
 	}
 
 	if len(msgResult.Messages) == 0 {
-		log.Println("No messages received")
+		// log.Println("No messages received")
 		return nil, nil
 	}
 

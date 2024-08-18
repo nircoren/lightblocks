@@ -5,37 +5,31 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 
-	"github.com/nircoren/lightblocks/queue/models"
+	"github.com/nircoren/lightblocks/pkg/queue/models"
 )
 
 // Lock keys when writing, rlock when reading
 type KeyedMutex struct {
-	mutexes sync.Map
-	Locked  bool
-	cond    *sync.Cond
+	mutexes       sync.Map
+	getAllItemsWg sync.WaitGroup
+	// Locked blocks all write operations until it is false
 }
 
 func NewKeyedMutex() *KeyedMutex {
 	m := &KeyedMutex{}
-	m.cond = sync.NewCond(&sync.Mutex{}) // Initialize the sync.Cond
 	return m
 }
 
 func (m *KeyedMutex) Lock(key string) func() {
-	m.cond.L.Lock()
-	for m.Locked {
-		m.cond.Wait() // Wait until 'Locked' is false
-	}
-	m.cond.L.Unlock()
-
-	fmt.Println("Locking key: ", key)
+	// If getAllItems is running, block all write operations by waiting for it to finish
+	m.getAllItemsWg.Wait()
 	value, _ := m.mutexes.LoadOrStore(key, &sync.RWMutex{})
 	mtx := value.(*sync.RWMutex)
 	mtx.Lock()
 
 	return func() {
-		fmt.Println("Unlocking key: ", key)
 		mtx.Unlock()
 	}
 }
@@ -84,13 +78,11 @@ func (om *OrderedMap) AddItem(key string, value string) string {
 
 func (om *OrderedMap) DeleteItem(key string) bool {
 	element, exists := om.data[key]
-	var isDeleted bool
+	var isDeleted bool = false
 	if exists {
 		om.order.Remove(element)
 		delete(om.data, key)
 		isDeleted = true
-	} else {
-		isDeleted = false
 	}
 	return isDeleted
 }
@@ -113,7 +105,7 @@ func (om *OrderedMap) GetAllItems() []Pair {
 }
 
 // We use a mutex to ensure safe concurrent access to the map
-func (om *OrderedMap) HandleCommand(message models.Command, logger *log.Logger, wg *sync.WaitGroup) {
+func (om *OrderedMap) HandleCommand(message models.Command, logger *log.Logger) {
 	switch message.Action {
 	case "addItem":
 		unlock := om.KeyedMutex.Lock(message.Key)
@@ -131,10 +123,8 @@ func (om *OrderedMap) HandleCommand(message models.Command, logger *log.Logger, 
 		unlock()
 	case "getItem":
 		rUnlock := om.KeyedMutex.RLock(message.Key)
-		wg.Add(1)
 		go func(rUnlock func()) {
 			defer rUnlock()
-			defer wg.Done()
 			value, exists := om.GetItem(message.Key)
 			if exists {
 				logger.Printf("Get Item: %s -> %s\n", message.Key, value)
@@ -145,22 +135,18 @@ func (om *OrderedMap) HandleCommand(message models.Command, logger *log.Logger, 
 			}
 		}(rUnlock)
 	case "getAllItems":
-		om.KeyedMutex.cond.L.Lock()
-		om.KeyedMutex.Locked = true
-		wg.Add(1)
+		om.KeyedMutex.getAllItemsWg.Add(1)
 		go func() {
-			defer func() {
-				om.KeyedMutex.Locked = false
-				om.KeyedMutex.cond.L.Unlock()
-				om.KeyedMutex.cond.Broadcast()
-			}()
-			defer wg.Done()
+			defer om.KeyedMutex.getAllItemsWg.Done()
 			items := om.GetAllItems()
-			logger.Printf("All items:")
+
+			fmt.Printf("All items:\n")
+			logger.Printf("All items:\n")
 			for _, item := range items {
-				fmt.Printf("%s -> %s\n", item.Key, item.Value)
-				logger.Printf("	Got Item: %s -> %s\n", item.Key, item.Value)
+				fmt.Printf("	%s -> %s\n", item.Key, item.Value)
+				logger.Printf("	%s -> %s\n", item.Key, item.Value)
 			}
+			time.Sleep(4 * time.Second)
 		}()
 	default:
 		fmt.Printf("Unknown command: %s\n", message.Action)

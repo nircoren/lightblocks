@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/joho/godotenv"
-	"github.com/nircoren/lightblocks/pkg/sqs"
-	"github.com/nircoren/lightblocks/queue/models"
+	"github.com/nircoren/lightblocks/pkg/queue/models"
+	"github.com/nircoren/lightblocks/pkg/queue/sqs"
 )
 
 func TestSendMessages(t *testing.T) {

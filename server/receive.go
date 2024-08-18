@@ -3,10 +3,8 @@ package server
 import (
 	"fmt"
 	"log"
-	"sync"
-	"time"
 
-	"github.com/nircoren/lightblocks/queue/models"
+	"github.com/nircoren/lightblocks/pkg/queue/models"
 )
 
 type receiveActions interface {
@@ -22,22 +20,21 @@ func NewMessagingService(a receiveActions) *MessagingService {
 	return &MessagingService{actions: a}
 }
 
-func ReceiveMessages(queueProvider *MessagingService, orderedMap *OrderedMap, logger *log.Logger) error {
-	groupChanMap := make(map[string]chan models.Command)
-	channelCloser := make(chan string)
-	var workersWg sync.WaitGroup
+func ReceiveMessages(queueProvider *MessagingService, orderedMap *OrderedMap, logger *log.Logger) {
 
-	// Start a goroutine for listening for channel closure requests
-	workersWg.Add(1)
-	go handleChannelClosures(&workersWg, groupChanMap, channelCloser)
-
-	const fetchWorkers = 2
+	const fetchWorkers int = 30
+	const processWorkers int = 30
 	fetchChan := make(chan struct{}, fetchWorkers)
+	messagesChan := make(chan []models.Command, processWorkers)
 
-	// Start fetch workers
+	// Init fetch workers
 	for i := 0; i < fetchWorkers; i++ {
-		workersWg.Add(1)
-		go fetchWorker(fetchChan, queueProvider, orderedMap, groupChanMap, logger, &workersWg, channelCloser)
+		go fetchWorker(fetchChan, messagesChan, queueProvider)
+	}
+
+	// Init process workers
+	for i := 0; i < processWorkers; i++ {
+		go processWorker(messagesChan, queueProvider, orderedMap, logger)
 	}
 
 	// Continuously feed fetch requests
@@ -45,82 +42,46 @@ func ReceiveMessages(queueProvider *MessagingService, orderedMap *OrderedMap, lo
 		fetchChan <- struct{}{}
 	}
 
-	workersWg.Wait()
-	cleanupResources(fetchChan, channelCloser, groupChanMap)
-
-	return nil
+	// Add for gracful shut down?
+	// sigit := make(chan os.Signal, 1)
+	// <-sigit
+	// fmt.Println("Shutting down...")
+	// close(fetchChan)
+	// close(messagesChan)
+	// // will send a signal to all workers to stop
+	// closeWorkers(fetchWorkers, processWorkers)
 }
 
-func fetchWorker(fetchChan chan struct{}, queueProvider *MessagingService, orderedMap *OrderedMap, groupChanMap map[string]chan models.Command, logger *log.Logger, workersWg *sync.WaitGroup, channelCloser chan string) {
-	defer workersWg.Done()
+func fetchWorker(fetchChan chan struct{}, messagesChan chan []models.Command, queueProvider *MessagingService) {
 
 	for range fetchChan {
 		messages, err := queueProvider.actions.ReceiveMessages()
 		if err != nil {
-			logger.Printf("Error receiving messages: %v", err)
+			fmt.Printf("Error receiving messages: %v", err)
 			continue
 		}
-		processMessages(messages, orderedMap, queueProvider, logger, workersWg, groupChanMap, channelCloser)
-	}
-}
-
-func handleChannelClosures(workersWg *sync.WaitGroup, groupChanMap map[string]chan models.Command, channelCloser chan string) {
-	defer workersWg.Done()
-	for groupID := range channelCloser {
-		close(groupChanMap[groupID])
-		delete(groupChanMap, groupID)
-	}
-}
-
-func processMessages(messages []models.Command, orderedMap *OrderedMap, queueProvider *MessagingService, logger *log.Logger, workersWg *sync.WaitGroup, groupChanMap map[string]chan models.Command, channelCloser chan string) {
-	for _, message := range messages {
-		if _, exists := groupChanMap[message.GroupID]; !exists {
-			groupChanMap[message.GroupID] = make(chan models.Command)
-			workersWg.Add(1)
-			go initWorker(orderedMap, queueProvider, message.GroupID, groupChanMap[message.GroupID], logger, channelCloser, workersWg)
+		if len(messages) == 0 {
+			continue
 		}
-
-		groupChanMap[message.GroupID] <- message
+		messagesChan <- messages
 	}
 }
 
-func initWorker(orderedMap *OrderedMap, queueProvider *MessagingService, workerID string, messageChan <-chan models.Command, logger *log.Logger, channelCloser chan string, workersWg *sync.WaitGroup) {
-	defer workersWg.Done()
+func processWorker(messagesChan chan []models.Command, queueProvider *MessagingService, orderedMap *OrderedMap, logger *log.Logger) {
 
-	timeoutDuration := 5 * time.Second
-
-	for {
-		select {
-		case message, ok := <-messageChan:
-			if !ok {
-				continue
-			}
-			processSingleMessage(orderedMap, message, logger, queueProvider, workersWg)
-		case <-time.After(timeoutDuration):
-			channelCloser <- workerID
-			fmt.Println("No messages received for 5 seconds")
-			return
+	for messages := range messagesChan {
+		for _, message := range messages {
+			processMessage(orderedMap, message, logger, queueProvider)
 		}
 	}
 }
 
-func processSingleMessage(orderedMap *OrderedMap, message models.Command, logger *log.Logger, queueProvider *MessagingService, workersWg *sync.WaitGroup) {
-	orderedMap.HandleCommand(message, logger, workersWg)
-
-	workersWg.Add(1)
+func processMessage(orderedMap *OrderedMap, message models.Command, logger *log.Logger, queueProvider *MessagingService) {
+	orderedMap.HandleCommand(message, logger)
 	go func(receiptHandle *string) {
-		defer workersWg.Done()
 		err := queueProvider.actions.DeleteMessage(receiptHandle)
 		if err != nil {
 			logger.Printf("Failed to delete message: %v", err)
 		}
 	}(message.ReceiptHandle)
-}
-
-func cleanupResources(fetchChan chan struct{}, channelCloser chan string, groupChanMap map[string]chan models.Command) {
-	close(fetchChan)
-	close(channelCloser)
-	for _, ch := range groupChanMap {
-		close(ch)
-	}
 }

@@ -6,8 +6,8 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/nircoren/lightblocks/client"
-	"github.com/nircoren/lightblocks/pkg/sqs"
-	"github.com/nircoren/lightblocks/queue/models"
+	"github.com/nircoren/lightblocks/pkg/queue/models"
+	"github.com/nircoren/lightblocks/pkg/queue/sqs"
 	"github.com/nircoren/lightblocks/server"
 	"github.com/nircoren/lightblocks/server/util"
 )
@@ -60,10 +60,7 @@ func TestMain(t *testing.T) {
 	queueProviderReceive := server.NewMessagingService(SQSService)
 
 	orderedMap := server.NewOrderedMap()
-	err = server.ReceiveMessages(queueProviderReceive, orderedMap, logger)
-	if err != nil {
-		t.Fatalf("Error receiving messages: %s", err)
-	}
+	server.ReceiveMessages(queueProviderReceive, orderedMap, logger)
 
 	time.Sleep(5 * time.Second)
 	allItems := orderedMap.GetAllItems()

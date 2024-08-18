@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	"github.com/nircoren/lightblocks/pkg/sqs"
+	"github.com/nircoren/lightblocks/pkg/queue/sqs"
 	"github.com/nircoren/lightblocks/server/util"
 )
 
@@ -44,7 +44,7 @@ func receiveMessagesWithTimeout(orderMap *OrderedMap, logger *log.Logger, timeou
 	queueProvider := NewMessagingService(SQSService)
 
 	go func() {
-		errChan <- ReceiveMessages(queueProvider, orderMap, logger)
+		ReceiveMessages(queueProvider, orderMap, logger)
 	}()
 
 	select {

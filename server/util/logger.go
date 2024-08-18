@@ -14,7 +14,7 @@ func SetupLogger(logPath string) (*log.Logger, error) {
 	}
 
 	// Construct the absolute path for the log file
-	absoluteLogPath := filepath.Join(projectRoot, logPath)
+	absoluteLogPath := filepath.Join(projectRoot, "server", logPath)
 
 	// Ensure the directory exists
 	dir := filepath.Dir(absoluteLogPath)
