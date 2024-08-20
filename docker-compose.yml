@@ -2,6 +2,7 @@ services:
   server:
     # image: server_image
     # container_name: server_container
+    platform: linux/amd64
     build:
       context: .
       dockerfile: cmd/server/Dockerfile
@@ -13,6 +14,7 @@ services:
     # To keep the container running
     # image: client_image
     # container_name: client_container
+    platform: linux/amd64
     build:
       context: .
       dockerfile: cmd/client/Dockerfile
