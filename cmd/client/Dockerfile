@@ -7,6 +7,6 @@ RUN go mod download
 
 COPY . .
 
-RUN GOOS=linux GOARCH=amd64 go build -o app ./cmd/client/main.go
+RUN GOOS=linux GOARCH=amd64 go build -o bin/client ./cmd/client/main.go
 
-# CMD ["./app"]
+CMD ["./bin/client"]
