@@ -45,9 +45,3 @@ docker run --rm -it lightblocks-client
 [input3.json](https://github.com/user-attachments/files/16645652/input3.json)  <br/>
 
 You can try to run multiple instances of the program with different username for each input.
-
-### My assumptions during project:
-Don't need to remove command from map after execute. <br />
-	Client shouldn't be a server. <br />
-	Order of actions should stay the same for each client, but doesnt matter if order is not the same between 2 different clients <br />
-	Shouldn't cancel sending and receiveing based on one bad message. <br />
