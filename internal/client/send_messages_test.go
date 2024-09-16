@@ -32,7 +32,7 @@ func TestSendMessages(t *testing.T) {
 		return
 	}
 
-	queueProviderSend := NewMessagingService(SQSService)
+	queueProviderSend := NewSendMessagesService(SQSService)
 	var wg sync.WaitGroup
 	wg.Add(1)
 	users := [2]string{"test1", "test2"}

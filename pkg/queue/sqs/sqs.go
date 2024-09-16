@@ -76,11 +76,9 @@ func (s *SQSService) ReceiveMessages() ([]models.Command, error) {
 	}
 
 	if len(msgResult.Messages) == 0 {
-		// log.Println("No messages received")
 		return nil, nil
 	}
 
-	// Convert the messages to our Message struct
 	messages := make([]models.Command, len(msgResult.Messages))
 	for i, msg := range msgResult.Messages {
 		messageModel, err := formatMessageModel(msg)
@@ -110,7 +108,6 @@ func (s *SQSService) DeleteMessage(receiptHandle *string) error {
 func (s *SQSService) sendBatch(Commands []models.CommandBase, userName string) error {
 	entries := make([]*sqs.SendMessageBatchRequestEntry, len(Commands))
 	for i, Command := range Commands {
-		// Convert command struct to JSON string for the message body
 		actionBody, err := json.Marshal(Command)
 		if err != nil {
 			log.Printf("Error marshalling command: %v\n", err)
@@ -146,15 +143,14 @@ func (s *SQSService) sendBatch(Commands []models.CommandBase, userName string) e
 func formatMessageModel(message *sqs.Message) (*models.Command, error) {
 	messageModel := &models.Command{}
 
-	// Unmarshal the message body into the Message struct
 	err := json.Unmarshal([]byte(*message.Body), messageModel)
 	if err != nil {
 		log.Printf("Error unmarshalling message body: %v", err)
 		return nil, err
 	}
 
-	// Validate the command
-	if err := messageModel.Validate(); err != nil {
+	err = messageModel.Validate()
+	if err != nil {
 		log.Printf("Invalid command: %v\n", err)
 		return nil, fmt.Errorf("invalid command: %v", err)
 	}

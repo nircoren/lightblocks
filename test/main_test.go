@@ -5,11 +5,11 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	"github.com/nircoren/lightblocks/client"
+	"github.com/nircoren/lightblocks/internal/client"
+	"github.com/nircoren/lightblocks/internal/server"
+	"github.com/nircoren/lightblocks/internal/server/util"
 	"github.com/nircoren/lightblocks/pkg/queue/models"
 	"github.com/nircoren/lightblocks/pkg/queue/sqs"
-	"github.com/nircoren/lightblocks/server"
-	"github.com/nircoren/lightblocks/server/util"
 )
 
 // Test that messages are sent and received correctly
@@ -44,7 +44,7 @@ func TestMain(t *testing.T) {
 		return
 	}
 
-	queueProviderSend := client.NewMessagingService(SQSService)
+	queueProviderSend := client.NewSendMessagesService(SQSService)
 
 	err = client.SendMessages(queueProviderSend, *messages, "test")
 	if err != nil {
@@ -57,14 +57,15 @@ func TestMain(t *testing.T) {
 		t.Fatalf("Failed to set up logger: %v", err)
 	}
 
-	queueProviderReceive := server.NewMessagingService(SQSService)
+	queueProviderReceive := server.NewReceiveMessagesService(SQSService)
 
 	orderedMap := server.NewOrderedMap()
 	server.ReceiveMessages(queueProviderReceive, orderedMap, logger)
 
 	time.Sleep(5 * time.Second)
-	allItems := orderedMap.GetAllItems()
-
+	done := make(chan []server.Pair)
+	orderedMap.GetAllItems(logger, done)
+	allItems := <-done
 	for _, item := range allItems {
 		if item.Value != expected[item.Key] {
 			t.Fatalf("Expected: %s, got: %s", expected[item.Key], item.Value)

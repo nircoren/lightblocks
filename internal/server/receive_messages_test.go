@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/nircoren/lightblocks/internal/server/util"
 	"github.com/nircoren/lightblocks/pkg/queue/sqs"
-	"github.com/nircoren/lightblocks/server/util"
 )
 
 // Test if service reaches provider without errors.
@@ -41,7 +41,7 @@ func receiveMessagesWithTimeout(orderMap *OrderedMap, logger *log.Logger, timeou
 		t.Fatalf("Error creating SQS service: %s", err)
 		return err
 	}
-	queueProvider := NewMessagingService(SQSService)
+	queueProvider := NewReceiveMessagesService(SQSService)
 
 	go func() {
 		ReceiveMessages(queueProvider, orderMap, logger)

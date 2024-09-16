@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/joho/godotenv"
+	"github.com/nircoren/lightblocks/internal/server"
+	"github.com/nircoren/lightblocks/internal/server/util"
 	"github.com/nircoren/lightblocks/pkg/queue/sqs"
-	"github.com/nircoren/lightblocks/server"
-	"github.com/nircoren/lightblocks/server/util"
 )
 
 func main() {
@@ -30,7 +30,7 @@ func main() {
 		return
 	}
 
-	queueProvider := server.NewMessagingService(SQSService)
+	queueProvider := server.NewReceiveMessagesService(SQSService)
 
 	server.ReceiveMessages(queueProvider, orderedMap, logger)
 

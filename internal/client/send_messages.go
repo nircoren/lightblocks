@@ -10,20 +10,20 @@ type sendActions interface {
 	SendMessages(messages []models.CommandBase, userName string) error
 }
 
-type MessagingService struct {
+type SendMessagesService struct {
 	actions sendActions
 }
 
-func NewMessagingService(a sendActions) *MessagingService {
-	return &MessagingService{actions: a}
+func NewSendMessagesService(a sendActions) *SendMessagesService {
+	return &SendMessagesService{actions: a}
 }
 
-func SendMessages(queueProvider *MessagingService, messages []models.CommandBase, userName string) error {
+func SendMessages(queueProvider *SendMessagesService, messages []models.CommandBase, userName string) error {
 	// Max capacity of the slice is the same as the length of the messages slice
 	filteredMessages := make([]models.CommandBase, 0, len(messages))
 	for _, message := range messages {
-		// Validate the command
-		if err := message.Validate(); err != nil {
+		err := message.Validate()
+		if err != nil {
 			log.Printf("Invalid command: %v\n", err)
 			continue
 		}

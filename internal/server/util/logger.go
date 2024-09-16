@@ -18,7 +18,8 @@ func SetupLogger(logPath string) (*log.Logger, error) {
 
 	// Ensure the directory exists
 	dir := filepath.Dir(absoluteLogPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	err = os.MkdirAll(dir, 0755)
+	if err != nil {
 		return nil, fmt.Errorf("failed to create log directory: %v", err)
 	}
 
